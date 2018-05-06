@@ -1,4 +1,4 @@
-import select, socket, sys, queue, traceback, os
+import select, socket, sys, queue, traceback, os, struct
 from random import randint
 from class_client import Client
 
@@ -36,11 +36,18 @@ class Server(object):
                         self.newClient(connection, client_address)
                     else:
                         try:
-                            data = s.recv(self.buff_size)
-                            if data:
-                                self.processClientData(s, data.decode('utf-8'))
-                            else:
-                                self.removeClient(s)
+                            size = struct.unpack("i", s.recv(struct.calcsize("i")))[0]
+                            data = b""
+                            while len(data) < size:
+                                msg = s.recv(size - len(data))
+                                if not msg:
+                                    print("Disconnected client while reading incoming message.")
+                                    self.removeClient(s)
+                                data += msg
+                            self.processClientData(s, data.decode('utf-8'))
+                        except struct.error:
+                            print("Could not read struct data from client. May be caused by client disconnection.")
+                            self.removeClient(s)
                         except:
                             print("An exception occured while receiving data from client " + str(self.client_list[s].id) + str(self.client_list[s].address))
                             print(traceback.print_exc())
@@ -52,7 +59,7 @@ class Server(object):
                     except queue.Empty:
                         self.outputs.remove(s)
                     else:
-                        s.send(next_msg)
+                        s.sendall(struct.pack("i", len(next_msg)) + next_msg)
 
                 for s in exceptional:
                     self.removeClient(s)
@@ -122,12 +129,14 @@ class Server(object):
                 self.sendDataToClient(cl_sock, "filedl_begin|" + fpath + "|" + str(os.path.getsize(fpath)))
             except StopIteration:
                 self.sendDataToClient(cl_sock, "filedl_end")
+
         elif data[0] == "filedl_ok": # Outdated file in client, send current one
             with open(data[1], "r") as f:
                 for l in f:
                     self.sendDataToClient(cl_sock, "filedl|" + data[1] + "|" + l)
             self.sendDataToClient(cl_sock, "filedl_done|" + data[1])
             inc_client.filedl_list.pop(data[1], None)
+
         elif data[0] == "filedl_uptodate": # File is updated, keep iterating
             inc_client.filedl_list.pop(data[1], None)
 

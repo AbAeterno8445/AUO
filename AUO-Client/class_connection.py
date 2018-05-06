@@ -1,4 +1,4 @@
-import socket, queue, threading
+import socket, queue, threading, struct, traceback
 
 class Connection(object):
     buff_size = 2048
@@ -23,17 +23,33 @@ class Connection(object):
         self.sock.close()
 
     def listener(self):
-        while not self.conn_broken:
-            msg = self.sock.recv(self.buff_size)
-            if msg:
-                self.rec_queue.put(msg.decode('utf-8'))
-            else:
-                self.conn_broken = True
+        conn_broken = False
+        while not conn_broken:
+            try:
+                size = struct.unpack("i", self.sock.recv(struct.calcsize("i")))[0]
+                data = b""
+                while len(data) < size:
+                    msg = self.sock.recv(size - len(data))
+                    if not msg:
+                        conn_broken = True
+                        break
+                    data += msg
+                self.rec_queue.put(data.decode('utf-8'))
+            except:
+                print(traceback.print_exc())
+                print("An exception occured in listener thread.")
+                break
 
     def sender(self):
-        while not self.conn_broken:
-            send_data = self.send_queue.get()
-            self.sock.sendall(send_data.encode('utf-8'))
+        while True:
+            try:
+                send_data = self.send_queue.get()
+                send_data = send_data.encode('utf-8')
+                self.sock.sendall(struct.pack("i", len(send_data)) + send_data)
+            except:
+                print(traceback.print_exc())
+                print("An exception occured in sender thread.")
+                break
 
     def get_data(self, wait=False):
         if wait:
