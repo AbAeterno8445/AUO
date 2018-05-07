@@ -2,9 +2,9 @@ from pygame.math import Vector2
 import queue
 
 class Client(object):
-    def __init__(self, id, sock=None, address=None):
+    def __init__(self, id, conn):
         self.id = id
-        self.connect(sock, address)
+        self.conn = conn
 
         self.pos = Vector2(0, 0)
         self.char = 0
@@ -12,12 +12,13 @@ class Client(object):
         self.msg_queue = queue.Queue()
 
         # File download list for patcher
-        self.filedl_list = {}
+        self.filedl_list = []
         with open("filetransfer_list", "r") as xferfile:
             for l in xferfile:
                 l = l.strip('\n')
-                with open(l, "r") as f:
-                    self.filedl_list[l] = f.readlines()
+                self.filedl_list.append(l)
+
+        self.filedl_current = []
 
     def connect(self, sock, address):
         self.sock = sock
