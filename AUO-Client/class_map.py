@@ -1,5 +1,4 @@
 import pygame
-from pygame.math import Vector2
 from math import floor
 
 class GameMap(object):
@@ -75,14 +74,25 @@ class Tile(pygame.sprite.DirtySprite):
     def __init__(self, tile_id, texture, pos, flags=[]):
         pygame.sprite.DirtySprite.__init__(self)
 
-        self.pos = Vector2(pos[0] * 32, pos[1] * 32)
+        self.pos = [pos[0] * 32, pos[1] * 32]
         self.tile_id = tile_id
         self.flags = flags
 
-        self.image = texture.subsurface(((self.tile_id % 16) * 32 + (self.tile_id % 16)*2, floor(self.tile_id / 16) * 32 + floor(self.tile_id / 16)*2, 32, 32))
+        self.texture = texture
+        self.image = self.get_tile_from_texture(self.tile_id)
         self.rect = self.image.get_rect(topleft=self.pos)
 
+        self.foreg_tile = None
+        foreg_tile_data = self.find_subflag("fg")
+        if foreg_tile_data:
+            self.foreg_tile = Tile(int(foreg_tile_data[1]), texture, pos)
+
         self.dirty = 1
+
+    # Returns a 32x32 surface positioned at the given tile for the texture loaded by the tile
+    # Texture must be loaded beforehand and have 16 tiles per row. Tiles must be 32x32
+    def get_tile_from_texture(self, tile):
+        return self.texture.subsurface(((tile % 16) * 32 + (tile % 16)*2, floor(tile / 16) * 32 + floor(tile / 16)*2, 32, 32))
 
     def has_flag(self, flag):
         if type(flag) is list:
