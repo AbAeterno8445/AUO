@@ -97,6 +97,7 @@ class GameSystem(object):
                             self.conn.send("xfer_map|" + newlevel_data[1])
                             self.load_map(newlevel_data[1])
                             self.player.set_pos(int(newlevel_data[2]), int(newlevel_data[3]))
+                            self.update_camera_plpos()
 
             self.server_listener()
 
