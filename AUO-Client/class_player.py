@@ -3,12 +3,15 @@ from math import floor
 from random import randint
 import pygame
 
-class Player(pygame.sprite.Sprite):
+class Player(pygame.sprite.DirtySprite):
     def __init__(self, id, pos, char):
-        pygame.sprite.Sprite.__init__(self)
+        pygame.sprite.DirtySprite.__init__(self)
+        self.dirty = 2
 
         self.id = id
-        self.pos = Vector2(pos[0],pos[1])
+        self.name = ""
+        self.x = pos[0]
+        self.y = pos[1]
         self.speed = 0.4
         self.speed_cd = 0
 
@@ -19,24 +22,26 @@ class Player(pygame.sprite.Sprite):
         self.ogimage = pygame.image.load("assets/charset_1.png")
         self.ogimage = pygame.transform.scale2x(self.ogimage)
         self.image = self.ogimage.subsurface(((self.char % 16) * 32 + (self.char % 16)*2, floor(self.char / 16) * 32 + floor(self.char / 16)*2, 32, 32))
-
         self.rect = self.image.get_rect()
 
-    def move_axis(self, axes):
+    def move_axis(self, axes, map):
         if self.speed_cd <= 0:
-            self.speed_cd = floor(self.speed * 60)
-            self.pos.x += axes[0] * 32
-            self.pos.y += axes[1] * 32
-            return True
+            newpos_x = self.x + axes[0]
+            newpos_y = self.y + axes[1]
+            if map.freetile(newpos_x, newpos_y):
+                self.speed_cd = floor(self.speed * 60)
+                self.x = newpos_x
+                self.y = newpos_y
+                return True
         return False
 
     def set_pos(self, px, py):
-        self.pos.x, self.pos.y = px, py
+        self.x, self.y = px, py
         self.update()
 
     def update(self):
-        self.rect.centerx = self.pos.x
-        self.rect.centery = self.pos.y
+        self.rect.x = self.x * 32
+        self.rect.y = self.y * 32
 
         if self.speed_cd > 0:
             self.speed_cd = self.speed_cd - 1

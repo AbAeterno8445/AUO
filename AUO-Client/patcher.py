@@ -30,7 +30,6 @@ class Patcher(object):
                             print("File [" + sv_data[1] + "] up to date.")
                             self.conn.send("filedl_uptodate|" + sv_data[1])
                             self.conn.send("filedl_check")
-
                     except os.error:
                         dl = True
 
