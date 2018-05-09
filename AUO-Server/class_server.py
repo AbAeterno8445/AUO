@@ -49,62 +49,62 @@ class Server(MastermindServerUDP):
 
     # Process incoming client messages
     def callback_client_handle(self, conn, data):
-        try:
-            print("Received data from client " + str(self.client_list[conn].id) + ": " + data)
+        if conn not in self.client_list:
+            return super(MastermindServerUDP, self).callback_client_handle(conn, data)
 
-            inc_client = self.client_list[conn] # Incoming client object
+        print("Received data from client " + str(self.client_list[conn].id) + ": " + data)
 
-            data = data.split('|')
-            if data[0] == "filedl_check": # Check for outdated files from client
-                try:
-                    fpath = next(iter(inc_client.filedl_list))
-                    self.callback_client_send(conn, "filedl_begin|" + fpath + "|" + str(os.path.getsize(fpath)))
-                except StopIteration:
-                    self.callback_client_send(conn, "filedl_end")
+        inc_client = self.client_list[conn] # Incoming client object
 
-            elif data[0] == "filedl_ok": # Outdated file in client, send current one
-                inc_client.filedl_current = open(data[1], "r")
+        data = data.split('|')
+        if data[0] == "filedl_check": # Check for outdated files from client
+            try:
+                fpath = next(iter(inc_client.filedl_list))
+                self.callback_client_send(conn, "filedl_begin|" + fpath + "|" + str(os.path.getsize(fpath)))
+            except StopIteration:
+                self.callback_client_send(conn, "filedl_end")
 
-            elif data[0] == "filedl_next": # Send file data on request
-                line = inc_client.filedl_current.read(1450)
-                if line:
-                    self.callback_client_send(conn, "filedl|" + data[1] + "|" + line)
-                else:
-                    self.callback_client_send(conn, "filedl_done|" + data[1])
-                    inc_client.filedl_current.close()
-                    inc_client.filedl_list.remove(data[1])
+        elif data[0] == "filedl_ok": # Outdated file in client, send current one
+            inc_client.filedl_current = open(data[1], "r")
 
-            elif data[0] == "filedl_uptodate": # File is updated, keep iterating
+        elif data[0] == "filedl_next": # Send file data on request
+            line = inc_client.filedl_current.read(1450)
+            if line:
+                self.callback_client_send(conn, "filedl|" + data[1] + "|" + line)
+            else:
+                self.callback_client_send(conn, "filedl_done|" + data[1])
+                inc_client.filedl_current.close()
                 inc_client.filedl_list.remove(data[1])
 
-            elif data[0] == "join": # New player joins
-                # Assign id to joining player
-                self.callback_client_send(conn, "assign_id|" + str(inc_client.id))
+        elif data[0] == "filedl_uptodate": # File is updated, keep iterating
+            inc_client.filedl_list.remove(data[1])
 
-                inc_client.char = int(data[1])
+        elif data[0] == "join": # New player joins
+            # Assign id to joining player
+            self.callback_client_send(conn, "assign_id|" + str(inc_client.id))
 
-                inc_client.current_map = self.map_list["town"]
-                self.callback_client_send(conn, "loadmap|town|spawn")
-                inc_client.current_map.player_enter(inc_client)
+            inc_client.char = int(data[1])
 
-            elif data[0] == "disconnect": # Player disconnection
-                self.callback_disconnect_client(conn)
+            inc_client.current_map = self.map_list["town"]
+            self.callback_client_send(conn, "loadmap|town|spawn")
+            inc_client.current_map.player_enter(inc_client)
 
-            elif data[0] == "xfer_map": # Map transfer
-                inc_client.current_map.player_leave(inc_client)
-                inc_client.current_map = self.map_list[data[1]]
-                inc_client.current_map.player_enter(inc_client)
+        elif data[0] == "disconnect": # Player disconnection
+            self.callback_disconnect_client(conn)
 
-            elif data[0] == "pl_move": # Player movement
-                inc_client.pos.x = float(data[1])
-                inc_client.pos.y = float(data[2])
-                for cl in self.client_list:
-                    if cl is not conn:
-                        self.callback_client_send(cl, "update_pl|" + str(self.client_list[conn].id) + "|" + str(data[1]) + "|" + str(data[2]))
+        elif data[0] == "xfer_map": # Map transfer
+            inc_client.current_map.player_leave(inc_client)
+            inc_client.current_map = self.map_list[data[1]]
+            inc_client.current_map.player_enter(inc_client)
 
-            elif data[0] == "ping": # Maintain connection alive
-                self.callback_client_send(conn, "pong")
-        except:
-            print("An exception occured while handling data from client " + str(conn.address))
+        elif data[0] == "pl_move": # Player movement
+            inc_client.pos.x = float(data[1])
+            inc_client.pos.y = float(data[2])
+            for cl in self.client_list:
+                if cl is not conn:
+                    self.callback_client_send(cl, "update_pl|" + str(self.client_list[conn].id) + "|" + str(data[1]) + "|" + str(data[2]))
+
+        elif data[0] == "ping": # Maintain connection alive
+            self.callback_client_send(conn, "pong")
 
         return super(MastermindServerUDP, self).callback_client_handle(conn, data)
