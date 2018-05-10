@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Statistic">
+    <option name="excludedDirectories">
+      <list>
+        <option value="$PROJECT_DIR$/AUO-Client/Mastermind" />
+        <option value="$PROJECT_DIR$/AUO-Server/Mastermind" />
+        <option value="$PROJECT_DIR$/AUO-Client/data" />
+        <option value="$PROJECT_DIR$/AUO-Server/data" />
+      </list>
+    </option>
+  </component>
+</project>

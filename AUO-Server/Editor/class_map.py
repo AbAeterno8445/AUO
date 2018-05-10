@@ -18,6 +18,32 @@ class GameMap(object):
         self.loaded = False
         self.map_data = []
 
+    # Saves currently loaded map to the given path
+    def save(self, map_path):
+        if self.loaded:
+            with open(map_path, "w+") as mapfile:
+                # Save map name
+                mapfile.write(self.name + "\n")
+
+                # Save map size
+                mapfile.write(str(self.width) + "," + str(self.height) + "\n")
+
+                # Save map tile data
+                for row in self.map_data:
+                    for i, tile in enumerate(row):
+                        mapfile.write(str(tile.tile_id))
+                        for f in tile.flags:
+                            mapfile.write(":")
+                            if type(f) is list:
+                                mapfile.write("/".join(f))
+                            else:
+                                mapfile.write(f)
+                        if i < len(row) - 1:
+                            mapfile.write(",")
+                    mapfile.write("\n")
+            return True
+        return False
+
     # Loads a map given a map file, returns list of tiles loaded
     def load(self, map_path):
         self.loaded = False
