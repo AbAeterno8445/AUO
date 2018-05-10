@@ -76,8 +76,6 @@ class GameSystem(object):
                     self.spritelist.add(tile.foreg_tile)
 
     def main_loop(self):
-        done = False
-
         ping_ticker = 300
 
         # Background
@@ -86,6 +84,7 @@ class GameSystem(object):
         background.fill((0, 0, 0))
         self.spritelist.clear(self.display, background)
 
+        done = False
         while not done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -108,7 +107,7 @@ class GameSystem(object):
 
             self.display.fill((0,0,0))
 
-            dirty_updates = self.spritelist.draw(self.game_surface)
+            self.spritelist.draw(self.game_surface)
             self.display.blit(self.game_surface, self.camera_pos)
             pygame.display.update(self.game_surface.get_rect())
             self.clock.tick(60)
