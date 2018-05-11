@@ -104,7 +104,6 @@ class Editor(object):
     def map_changetile(self, tx, ty, newtile, foreg=False):
         try:
             changed_tile = self.map.map_data[ty][tx]
-
             if not foreg:
                 self.spr_list_maptiles.remove(changed_tile)
                 changed_tile.set_tile(newtile)

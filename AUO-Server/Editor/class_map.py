@@ -29,7 +29,8 @@ class GameMap(object):
         for h in range(size_y):
             self.map_data.append([])
             for w in range(size_x):
-                self.map_data[h].append(Tile(0, self.tile_texture, (w,h)))
+                tmp_tile = Tile(0, self.tile_texture, (w,h))
+                self.map_data[h].append(tmp_tile)
         self.loaded = True
 
     # Resize currently loaded map
@@ -127,7 +128,7 @@ class GameMap(object):
             return False
 
 class Tile(pygame.sprite.DirtySprite):
-    def __init__(self, tile_id, texture, pos, flags=[]):
+    def __init__(self, tile_id, texture, pos, flags=None):
         pygame.sprite.DirtySprite.__init__(self)
         self.texture = texture
 
@@ -135,6 +136,8 @@ class Tile(pygame.sprite.DirtySprite):
         self.draw_pos = (pos[0] * 32, pos[1] * 32)
         self.tile_id = tile_id
         self.set_tile(tile_id)
+        if not flags:
+            flags = []
         self.flags = flags
 
         self.rect = self.image.get_rect(topleft=self.draw_pos)
@@ -158,11 +161,13 @@ class Tile(pygame.sprite.DirtySprite):
             self.flags.remove(foreg_flag)
             return False
 
-        self.foreg_tile = Tile(int(foreg_tile), self.texture, self.pos)
-        self.foreg_tile.dirty = 2
-        if not foreg_flag:
+        if not foreg_flag: # New foreground tile
+            self.foreg_tile = Tile(foreg_tile, self.texture, self.pos)
+            self.foreg_tile.dirty = 2
             self.flags.append(["fg", str(foreg_tile)])
-        else:
+
+        else: # Alter existing foreground tile
+            self.foreg_tile.set_tile(foreg_tile)
             foreg_flag[1] = str(foreg_tile)
         return True
 
