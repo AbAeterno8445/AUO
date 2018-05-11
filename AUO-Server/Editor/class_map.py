@@ -153,6 +153,7 @@ class Tile(pygame.sprite.DirtySprite):
             return False
 
         self.foreg_tile = Tile(int(foreg_tile), self.texture, self.pos)
+        self.foreg_tile.dirty = 2
         if not foreg_flag:
             self.flags.append(["fg", str(foreg_tile)])
         else:

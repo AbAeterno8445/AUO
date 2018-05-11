@@ -1,8 +1,7 @@
-import os.path
+import os.path, math
 from class_map import GameMap
 import pygame
 from pygame.math import Vector2
-from math import floor
 
 class Editor(object):
     def __init__(self):
@@ -16,9 +15,14 @@ class Editor(object):
         self.palette_surface = None
         self.settings_surface = None
 
+        # Palette scrolling
+        self.palette_pad_av = 0
+        self.palette_pad = 0
+
         self.clock = pygame.time.Clock()
 
         self.spr_list_maptiles = pygame.sprite.LayeredDirty()
+        self.spr_list_maptiles_fg = pygame.sprite.LayeredDirty()
         self.spr_list_palette = pygame.sprite.LayeredDirty()
         for ptile in self.map.tile_palette:
             self.spr_list_palette.add(ptile)
@@ -39,7 +43,11 @@ class Editor(object):
         self.display = pygame.display.set_mode((disp_w, disp_h))
         self.tiles_surface = pygame.Surface((disp_w, disp_h))
         self.settings_surface = pygame.Surface((disp_w, 128))
-        self.palette_surface = pygame.Surface((self.map.palette_rowlen * 32, disp_h - self.settings_surface.get_height()))
+
+        palette_rows = math.ceil(len(self.map.tile_palette) / self.map.palette_rowlen)
+        self.palette_surface = pygame.Surface((self.map.palette_rowlen * 32, palette_rows * 32))
+
+        self.palette_pad_av = palette_rows - math.ceil((disp_h - self.settings_surface.get_height()) / 32) + 1
 
     def load_map(self, mapname):
         map_path = "../data/maps/" + mapname
@@ -49,6 +57,8 @@ class Editor(object):
             if self.map.loaded:
                 for row in self.map.map_data:
                     for tile in row:
+                        if tile.foreg_tile:
+                            self.spr_list_maptiles_fg.remove(tile.foreg_tile)
                         self.spr_list_maptiles.remove(tile)
 
             map_tiles = self.map.load(map_path)
@@ -56,7 +66,7 @@ class Editor(object):
                 for tile in row:
                     self.spr_list_maptiles.add(tile)
                     if tile.foreg_tile:
-                        self.spr_list_maptiles.add(tile.foreg_tile)
+                        self.spr_list_maptiles_fg.add(tile.foreg_tile)
 
             self.camera_pos.x = self.palette_surface.get_width() + self.map.width * 16
             self.camera_pos.y += self.map.height * 16
@@ -90,9 +100,9 @@ class Editor(object):
                 self.spr_list_maptiles.add(changed_tile)
             else:
                 if changed_tile.foreg_tile:
-                    self.spr_list_maptiles.remove(changed_tile.foreg_tile)
+                    self.spr_list_maptiles_fg.remove(changed_tile.foreg_tile)
                 if changed_tile.set_foreg(newtile):
-                    self.spr_list_maptiles.add(changed_tile.foreg_tile)
+                    self.spr_list_maptiles_fg.add(changed_tile.foreg_tile)
 
             return True
         except: pass
@@ -111,26 +121,26 @@ class Editor(object):
             [pygame.Color(30, 220, 220), pygame.Rect(1, 1, 30, 30)]
         ]
 
-        self.load_map("town")
-        self.map_resize(0, 7)
-
         done = False
         while not done:
             # Mouse position
             mouse_pos = pygame.mouse.get_pos()
             # Mouse position aligned to 32x32 grid
-            mouse_pos32x, mouse_pos32y = floor(mouse_pos[0] / 32), floor(mouse_pos[1] / 32)
+            mouse_pos32x, mouse_pos32y = math.floor(mouse_pos[0] / 32), math.floor(mouse_pos[1] / 32)
             # Mouse tile position within map surface
             mouse_tileposx, mouse_tileposy = 0, 0
             if self.map.loaded:
-                mouse_tileposx = min(max(floor((mouse_pos[0] - self.camera_pos.x) / 32), 0), self.map.width - 1)
-                mouse_tileposy = min(max(floor((mouse_pos[1] - self.camera_pos.y) / 32), 0), self.map.height - 1)
+                mouse_tileposx = min(max(math.floor((mouse_pos[0] - self.camera_pos.x) / 32), 0), self.map.width - 1)
+                mouse_tileposy = min(max(math.floor((mouse_pos[1] - self.camera_pos.y) / 32), 0), self.map.height - 1)
 
             # Keyboard keys held
             if not self.inputting:
                 self.keys_held = pygame.key.get_pressed()
             # Mouse buttons held
             self.mouse_held = pygame.mouse.get_pressed()
+
+            # Selection rect update
+            upd_rel_sect = False
 
             # Pygame event polling
             for event in pygame.event.get():
@@ -149,6 +159,9 @@ class Editor(object):
 
                         elif event.key == pygame.K_BACKSPACE:
                             self.text_input = self.text_input[:-1]
+                        elif event.key == pygame.K_ESCAPE:
+                            self.text_input = ""
+                            self.inputting = False
                         else:
                             self.text_input += event.unicode
 
@@ -167,12 +180,18 @@ class Editor(object):
                         elif event.key == pygame.K_f: # F, set foreground mode
                             self.foreg_mode = not self.foreg_mode
                             print("Foreground mode ", self.foreg_mode)
+                        elif event.key == pygame.K_DOWN: # Down arrow, scroll palette down
+                            self.palette_pad = max(0, min(self.palette_pad_av, self.palette_pad + 1))
+                            upd_rel_sect = True
+                        elif event.key == pygame.K_UP: # Up arrow, scroll palette up
+                            self.palette_pad = max(0, min(self.palette_pad_av, self.palette_pad - 1))
+                            upd_rel_sect = True
 
             # Camera movement
             mv_axis = [0, 0]
-            cam_spd = 5
-            if self.keys_held[pygame.K_LSHIFT]: # fast movement (lshift)
-                cam_spd = 20
+            cam_spd = 10
+            if self.keys_held[pygame.K_LALT]: # fast movement (lalt)
+                cam_spd = 25
             if self.keys_held[pygame.K_d]:  # right
                 mv_axis[0] = cam_spd
             elif self.keys_held[pygame.K_a]:  # left
@@ -186,10 +205,11 @@ class Editor(object):
             # Left/Right mouse button held
             for i in range(2):
                 if self.mouse_held[i*2]: # get mouse held 0(left) and 2(right)
-                    upd_rel_sect = False
-                    if mouse_pos[0] < self.palette_surface.get_width():  # Mouse x < palette x, selecting tile
-                        self.selected_tile[i] = self.map.tile_palette[mouse_pos32x + mouse_pos32y * self.map.palette_rowlen].tile_id
-                        upd_rel_sect = True
+                    if self.palette_surface.get_rect().collidepoint(mouse_pos):  # Mouse in palette, selecting tile
+                        try:
+                            self.selected_tile[i] = self.map.tile_palette[mouse_pos32x + (mouse_pos32y + self.palette_pad) * self.map.palette_rowlen].tile_id
+                            upd_rel_sect = True
+                        except IndexError: pass
                     else:  # Mouse x > palette x, placing tile in map
                         # CTRL key - Tile picker
                         if self.keys_held[pygame.K_LCTRL]:
@@ -204,21 +224,17 @@ class Editor(object):
                             else:
                                 self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], False)
 
-                    if upd_rel_sect:
-                        rect_sel[i][1].topleft = (self.selected_tile[i] % self.map.palette_rowlen * 32 + i, floor(self.selected_tile[i] / self.map.palette_rowlen) * 32 + i)
-
-            self.spr_list_maptiles.update()
-
             self.display.fill((0, 0, 0))
 
             self.spr_list_palette.draw(self.palette_surface) # Draw tiles to palette surface
             self.spr_list_maptiles.draw(self.tiles_surface) # Draw maptiles to map surface
+            self.spr_list_maptiles_fg.draw(self.tiles_surface) # Foreground tiles
 
             # Draw map surface
             self.display.blit(self.tiles_surface, self.camera_pos)
 
             # Draw palette surface
-            self.display.blit(self.palette_surface, (0,0))
+            self.display.blit(self.palette_surface, (0,-self.palette_pad * 32))
             pygame.draw.rect(self.display, (255,255,255), self.palette_surface.get_rect(), 1)
 
             # Draw settings surface
@@ -235,17 +251,22 @@ class Editor(object):
             if self.inputting:
                 tmp_text = self.font.render(self.text_info + self.text_input, False, self.font_color)
                 self.settings_surface.blit(tmp_text, (4, self.settings_surface.get_height() - tmp_text.get_height() - 4))
-            self.display.blit(self.settings_surface, (0, self.palette_surface.get_height()))
+
+            self.display.blit(self.settings_surface, (0, self.display.get_height() - self.settings_surface.get_height()))
 
             if self.map.loaded:
                 # Selection rectangle
-                # Mouse x > palette x, editing map
-                if mouse_pos[0] >= self.palette_surface.get_width():
+                # Mouse outside palette, editing map
+                if not self.palette_surface.get_rect().collidepoint(mouse_pos):
                     pygame.draw.rect(self.display, (200, 127, 30), (self.camera_pos.x + mouse_tileposx * 32, self.camera_pos.y + mouse_tileposy * 32, 32, 32), 1)
                 else: # Selecting tile
-                    pygame.draw.rect(self.display, (220, 220, 50), (floor(mouse_pos[0] / 32) * 32, floor(mouse_pos[1] / 32) * 32, 32, 32), 1)
+                    pygame.draw.rect(self.display, (220, 220, 50), (math.floor(mouse_pos[0] / 32) * 32, math.floor(mouse_pos[1] / 32) * 32, 32, 32), 1)
 
             # Selected tile rectangle (primary/secondary)
+            if upd_rel_sect:
+                for i in range(2):
+                    rect_sel[i][1].topleft = (self.selected_tile[i] % self.map.palette_rowlen * 32 + i,
+                                              math.floor((self.selected_tile[i] - self.palette_pad * self.map.palette_rowlen) / self.map.palette_rowlen) * 32 + i)
             for r in rect_sel:
                 pygame.draw.rect(self.display, r[0], r[1], 1)
 

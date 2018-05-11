@@ -6,8 +6,7 @@ def main():
     editor = Editor()
 
     try:
-        resol = (int(input("Resolution X > ")), int(input("Resolution Y > ")))
-        editor.init_display(*resol)
+        editor.init_display(int(input("Resolution X > ")), int(input("Resolution Y > ")))
     except:
         editor.init_display(1280, 720)
 
