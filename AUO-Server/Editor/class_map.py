@@ -19,12 +19,13 @@ class GameMap(object):
         self.map_data = []
 
     # Create new map given size
-    def newmap(self, size_x, size_y):
+    def newmap(self, newname, size_x, size_y):
         self.loaded = False
-        self.map_data = []
+        self.name = newname
         self.width = size_x
         self.height = size_y
 
+        self.map_data = []
         for h in range(size_y):
             self.map_data.append([])
             for w in range(size_x):
@@ -34,7 +35,6 @@ class GameMap(object):
     # Resize currently loaded map
     def resize(self, newsize_x, newsize_y):
         if self.loaded:
-            newtiles_list = []
             # Resize Y axis
             if newsize_y > self.height:
                 for i in range(newsize_y - self.height):
@@ -42,14 +42,22 @@ class GameMap(object):
                     for j in range(self.width):
                         tmp_tile = Tile(0, self.tile_texture, (j,len(self.map_data)-1))
                         self.map_data[-1].append(tmp_tile)
-                        newtiles_list.append(["add",tmp_tile])
             elif newsize_y < self.height:
                 for i in range(self.height - newsize_y):
-                    for tmp_tile in self.map_data[-1-i]:
-                        newtiles_list.append(["remove",tmp_tile])
+                    self.map_data.remove(self.map_data[-1])
             self.height = newsize_y
-            return newtiles_list
-        return False
+
+            # Resize X axis
+            if newsize_x > self.width:
+                for i in range(self.height):
+                    for j in range(newsize_x - self.width):
+                        tmp_tile = Tile(0, self.tile_texture, (len(self.map_data[i]), i))
+                        self.map_data[i].append(tmp_tile)
+            elif newsize_x < self.width:
+                for i in range(self.height):
+                    for j in range(self.width - newsize_x):
+                        self.map_data[i].remove(self.map_data[i][-1])
+            self.width = newsize_x
 
     # Saves currently loaded map to the given path
     def save(self, map_path=None):
@@ -117,8 +125,6 @@ class GameMap(object):
         except ValueError:
             print("Error while loading map [" + map_path + "]: wrong format!")
             return False
-
-        return self.map_data
 
 class Tile(pygame.sprite.DirtySprite):
     def __init__(self, tile_id, texture, pos, flags=[]):

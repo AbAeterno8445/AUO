@@ -35,6 +35,7 @@ class Editor(object):
         self.text_info = ""
         self.text_input = ""
         self.input_action = ""
+        self.input_data = {} # Extra input data, e.g. new map x/y size, resize map x/y size
         self.inputting = False
 
     def init_display(self, disp_w, disp_h):
@@ -49,24 +50,30 @@ class Editor(object):
 
         self.palette_pad_av = palette_rows - math.ceil((disp_h - self.settings_surface.get_height()) / 32) + 1
 
+    # Unload tile sprites from map
+    def map_removetiles(self):
+        if self.map.loaded:
+            for row in self.map.map_data:
+                for tile in row:
+                    if tile.foreg_tile:
+                        self.spr_list_maptiles_fg.remove(tile.foreg_tile)
+                    self.spr_list_maptiles.remove(tile)
+
+    # Load tile sprites from map
+    def map_addtiles(self):
+        for row in self.map.map_data:
+            for tile in row:
+                self.spr_list_maptiles.add(tile)
+                if tile.foreg_tile:
+                    self.spr_list_maptiles_fg.add(tile.foreg_tile)
+
     def load_map(self, mapname):
         map_path = "../data/maps/" + mapname
         print("Loading map " + mapname + "...")
         if os.path.isfile(map_path):
-            # Unload current map if loaded
-            if self.map.loaded:
-                for row in self.map.map_data:
-                    for tile in row:
-                        if tile.foreg_tile:
-                            self.spr_list_maptiles_fg.remove(tile.foreg_tile)
-                        self.spr_list_maptiles.remove(tile)
-
-            map_tiles = self.map.load(map_path)
-            for row in map_tiles:
-                for tile in row:
-                    self.spr_list_maptiles.add(tile)
-                    if tile.foreg_tile:
-                        self.spr_list_maptiles_fg.add(tile.foreg_tile)
+            self.map_removetiles()
+            self.map.load(map_path)
+            self.map_addtiles()
 
             self.camera_pos.x = self.palette_surface.get_width() + self.map.width * 16
             self.camera_pos.y += self.map.height * 16
@@ -75,20 +82,24 @@ class Editor(object):
             print("Could not find map!")
             return False
 
-    def save_map(self, mapname):
+    def save_map(self, mapname=""):
+        if not mapname:
+            mapname = self.map.name
         map_path = "../data/maps/" + mapname
         if self.map.save(map_path):
             print("Map " + mapname + " saved.")
         else:
             print("No map loaded!")
 
+    def new_map(self, name, xsize, ysize):
+        self.map_removetiles()
+        self.map.newmap(name, xsize, ysize)
+        self.map_addtiles()
+
     def map_resize(self, newsize_x, newsize_y):
-        ntiles = self.map.resize(newsize_x, newsize_y)
-        for t in ntiles:
-            if t[0] == "add":
-                self.spr_list_maptiles.add(t[1])
-            elif t[0] == "remove":
-                self.spr_list_maptiles.remove(t[1])
+        self.map_removetiles()
+        self.map.resize(newsize_x, newsize_y)
+        self.map_addtiles()
 
     def map_changetile(self, tx, ty, newtile, foreg=False):
         try:
@@ -106,6 +117,17 @@ class Editor(object):
 
             return True
         except: pass
+        return False
+
+    def set_inputmode(self, active, action="", info="", inp="",):
+        self.inputting = active
+        if self.inputting:
+            self.input_action = action
+            self.text_info = info
+            self.text_input = inp
+            return True
+
+        self.input_data = {}
         return False
 
     def main_loop(self):
@@ -149,37 +171,79 @@ class Editor(object):
                 elif event.type == pygame.KEYDOWN:
                     # Inputting
                     if self.inputting:
-                        if event.key == pygame.K_RETURN:
+                        if event.key == pygame.K_RETURN: # Enter - process input
+                            inp_react = False
                             if self.input_action == "save": # Save map
                                 self.save_map(self.text_input)
                             elif self.input_action == "load": # Load map
                                 self.load_map(self.text_input)
-                            self.text_input = ""
-                            self.inputting = False
+                            elif self.input_action == "newmap_name": # New map name
+                                self.text_input = self.text_input.strip()
+                                if not self.text_input:
+                                    print("New map - Invalid map name!")
+                                else:
+                                    self.input_data[self.input_action] = self.text_input
+                                    self.set_inputmode(True, "newmap_x", "New map X size > ")
+                                    inp_react = True
+                            elif self.input_action == "newmap_x" or self.input_action == "newmap_y": # New map size data
+                                try:
+                                    tmp_mapsize_data = int(self.text_input)
+                                except (TypeError, ValueError):
+                                    print("New map - You must enter a number!")
+                                else:
+                                    if tmp_mapsize_data > 0:
+                                        self.input_data[self.input_action] = tmp_mapsize_data
+                                        if self.input_action == "newmap_x":
+                                            self.set_inputmode(True, "newmap_y", "New map Y size > ")
+                                            inp_react = True
+                                        else: # New map done (if more flags are needed, add them here and continue processing)
+                                            self.save_map()
+                                            print("Creating new map \"" + self.input_data["newmap_name"] + "\"...")
+                                            self.new_map(self.input_data["newmap_name"], self.input_data["newmap_x"], self.input_data["newmap_y"])
+                                    else:
+                                        print("New map - Invalid number!")
+
+                            elif self.input_action == "resizemap_x" or self.input_action == "resizemap_y": # Resize map
+                                try:
+                                    tmp_newsize = int(self.text_input)
+                                except (TypeError, ValueError):
+                                    print("Resize map - You must enter a number!")
+                                else:
+                                    if tmp_newsize > 0:
+                                        self.input_data[self.input_action] = tmp_newsize
+                                        if self.input_action == "resizemap_x":
+                                            self.set_inputmode(True, "resizemap_y", "Resize, new Y > ")
+                                            inp_react = True
+                                        else:
+                                            print("Resizing map to " + str(self.input_data["resizemap_x"]) + " x " + str(self.input_data["resizemap_y"]) + "...")
+                                            self.map_resize(self.input_data["resizemap_x"], self.input_data["resizemap_y"])
+                                    else:
+                                        print("Resize map - Invalid number!")
+
+                            if not inp_react:
+                                self.set_inputmode(False, "")
 
                         elif event.key == pygame.K_BACKSPACE:
                             self.text_input = self.text_input[:-1]
                         elif event.key == pygame.K_ESCAPE:
-                            self.text_input = ""
-                            self.inputting = False
+                            self.set_inputmode(False, "")
                         else:
                             self.text_input += event.unicode
 
                     else: # Normal keypress
                         if self.keys_held[pygame.K_LSHIFT]: # Shift + key
                             if event.key == pygame.K_s: # SHIFT + S, save map
-                                self.text_info = "Save map as > "
-                                self.text_input = self.map.name
-                                self.input_action = "save"
-                                self.inputting = True
+                                self.set_inputmode(True, "save", "Save map as > ", self.map.name)
                             elif event.key == pygame.K_l: # SHIFT + L, load map
-                                self.text_info = "Load map > "
-                                self.input_action = "load"
-                                self.inputting = True
+                                self.set_inputmode(True, "load", "Load map > ")
+                            elif event.key == pygame.K_n: # SHIFT + N, new map
+                                self.set_inputmode(True, "newmap_name", "New map name > ")
+                            elif event.key == pygame.K_r: # SHIFT + R, resize current map
+                                self.set_inputmode(True, "resizemap_x", "Resize, new X > ")
 
                         elif event.key == pygame.K_f: # F, set foreground mode
                             self.foreg_mode = not self.foreg_mode
-                            print("Foreground mode ", self.foreg_mode)
+                            print("Foreground mode", self.foreg_mode)
                         elif event.key == pygame.K_DOWN: # Down arrow, scroll palette down
                             self.palette_pad = max(0, min(self.palette_pad_av, self.palette_pad + 1))
                             upd_rel_sect = True
