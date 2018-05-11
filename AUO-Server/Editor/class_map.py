@@ -18,8 +18,43 @@ class GameMap(object):
         self.loaded = False
         self.map_data = []
 
+    # Create new map given size
+    def newmap(self, size_x, size_y):
+        self.loaded = False
+        self.map_data = []
+        self.width = size_x
+        self.height = size_y
+
+        for h in range(size_y):
+            self.map_data.append([])
+            for w in range(size_x):
+                self.map_data[h].append(Tile(0, self.tile_texture, (w,h)))
+        self.loaded = True
+
+    # Resize currently loaded map
+    def resize(self, newsize_x, newsize_y):
+        if self.loaded:
+            newtiles_list = []
+            # Resize Y axis
+            if newsize_y > self.height:
+                for i in range(newsize_y - self.height):
+                    self.map_data.append([])
+                    for j in range(self.width):
+                        tmp_tile = Tile(0, self.tile_texture, (j,len(self.map_data)-1))
+                        self.map_data[-1].append(tmp_tile)
+                        newtiles_list.append(["add",tmp_tile])
+            elif newsize_y < self.height:
+                for i in range(self.height - newsize_y):
+                    for tmp_tile in self.map_data[-1-i]:
+                        newtiles_list.append(["remove",tmp_tile])
+            self.height = newsize_y
+            return newtiles_list
+        return False
+
     # Saves currently loaded map to the given path
-    def save(self, map_path):
+    def save(self, map_path=None):
+        if map_path is None:
+            map_path = "../data/maps/" + self.name
         if self.loaded:
             with open(map_path, "w+") as mapfile:
                 # Save map name
@@ -111,10 +146,18 @@ class Tile(pygame.sprite.DirtySprite):
 
     # Set foreground tile. -1 removes current foreground
     def set_foreg(self, foreg_tile):
+        foreg_flag = self.find_subflag("fg")
         if foreg_tile == -1:
             self.foreg_tile = None
-            return
+            self.flags.remove(foreg_flag)
+            return False
+
         self.foreg_tile = Tile(int(foreg_tile), self.texture, self.pos)
+        if not foreg_flag:
+            self.flags.append(["fg", str(foreg_tile)])
+        else:
+            foreg_flag[1] = str(foreg_tile)
+        return True
 
     def has_flag(self, flag):
         if type(flag) is list:

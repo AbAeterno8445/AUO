@@ -24,6 +24,7 @@ class Editor(object):
             self.spr_list_palette.add(ptile)
 
         self.selected_tile = [0, 0]
+        self.foreg_mode = False
 
         self.font = pygame.font.Font("monobit.ttf", 32)
         self.font_color = pygame.Color(255, 255, 255)
@@ -71,14 +72,31 @@ class Editor(object):
         else:
             print("No map loaded!")
 
-    def map_changetile(self, ty, tx, newtile):
+    def map_resize(self, newsize_x, newsize_y):
+        ntiles = self.map.resize(newsize_x, newsize_y)
+        for t in ntiles:
+            if t[0] == "add":
+                self.spr_list_maptiles.add(t[1])
+            elif t[0] == "remove":
+                self.spr_list_maptiles.remove(t[1])
+
+    def map_changetile(self, tx, ty, newtile, foreg=False):
         try:
-            changed_tile = self.map.map_data[tx][ty]
-            self.spr_list_maptiles.remove(changed_tile)
-            changed_tile.set_tile(newtile)
-            self.spr_list_maptiles.add(changed_tile)
+            changed_tile = self.map.map_data[ty][tx]
+
+            if not foreg:
+                self.spr_list_maptiles.remove(changed_tile)
+                changed_tile.set_tile(newtile)
+                self.spr_list_maptiles.add(changed_tile)
+            else:
+                if changed_tile.foreg_tile:
+                    self.spr_list_maptiles.remove(changed_tile.foreg_tile)
+                if changed_tile.set_foreg(newtile):
+                    self.spr_list_maptiles.add(changed_tile.foreg_tile)
+
             return True
-        except: return False
+        except: pass
+        return False
 
     def main_loop(self):
         # Background for map surface
@@ -92,6 +110,9 @@ class Editor(object):
             [pygame.Color(220, 30, 30), pygame.Rect(0, 0, 32, 32)],
             [pygame.Color(30, 220, 220), pygame.Rect(1, 1, 30, 30)]
         ]
+
+        self.load_map("town")
+        self.map_resize(0, 7)
 
         done = False
         while not done:
@@ -143,6 +164,10 @@ class Editor(object):
                                 self.input_action = "load"
                                 self.inputting = True
 
+                        elif event.key == pygame.K_f: # F, set foreground mode
+                            self.foreg_mode = not self.foreg_mode
+                            print("Foreground mode ", self.foreg_mode)
+
             # Camera movement
             mv_axis = [0, 0]
             cam_spd = 5
@@ -158,7 +183,7 @@ class Editor(object):
                 mv_axis[1] = cam_spd
             self.camera_pos -= mv_axis
 
-            # Left mouse button held
+            # Left/Right mouse button held
             for i in range(2):
                 if self.mouse_held[i*2]: # get mouse held 0(left) and 2(right)
                     upd_rel_sect = False
@@ -171,7 +196,13 @@ class Editor(object):
                             self.selected_tile[i] = self.map.map_data[mouse_tileposy][mouse_tileposx].tile_id
                             upd_rel_sect = True
                         else: # Place tile
-                            self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i])
+                            if self.foreg_mode:
+                                if i == 0:
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], True)
+                                else:
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, -1, True)
+                            else:
+                                self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], False)
 
                     if upd_rel_sect:
                         rect_sel[i][1].topleft = (self.selected_tile[i] % self.map.palette_rowlen * 32 + i, floor(self.selected_tile[i] / self.map.palette_rowlen) * 32 + i)
@@ -192,6 +223,14 @@ class Editor(object):
 
             # Draw settings surface
             self.settings_surface.fill((0,0,0))
+            # Modes info text
+            str_modes = ""
+            if self.foreg_mode:
+                str_modes += "Foreground / "
+
+            tmp_text = self.font.render("Active modes: " + str_modes, False, self.font_color)
+            self.settings_surface.blit(tmp_text, (4,4))
+
             # Save/load info text
             if self.inputting:
                 tmp_text = self.font.render(self.text_info + self.text_input, False, self.font_color)
