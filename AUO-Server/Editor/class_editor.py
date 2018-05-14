@@ -82,7 +82,7 @@ class Editor(object):
             self.map_addtiles()
 
             self.camera_pos.x = self.palette_surface.get_width() + self.map.width * 16
-            self.camera_pos.y += self.map.height * 16
+            self.camera_pos.y = self.map.height * 16 - self.settings_surface.get_height() / 2
 
             self.updatesize_tilesurface()
             return True
@@ -117,6 +117,11 @@ class Editor(object):
 
             # Flags list including subflags
             flags_full = []
+            # Keep foreground flag
+            tmp_foreg_flag = changed_tile.find_subflag("fg")
+            if tmp_foreg_flag:
+                flags_full.append(tmp_foreg_flag)
+
             for f in flags:
                 tmp_flag = f.split('/')
                 if len(tmp_flag) == 1:
@@ -131,6 +136,7 @@ class Editor(object):
                 self.spr_list_maptiles.add(changed_tile)
             else:
                 if changed_tile.foreg_tile:
+                    changed_tile.dirty = 1 # Hack for clearing deleted foreground
                     self.spr_list_maptiles_fg.remove(changed_tile.foreg_tile)
                 if changed_tile.set_foreg(newtile):
                     self.spr_list_maptiles_fg.add(changed_tile.foreg_tile)
@@ -264,12 +270,14 @@ class Editor(object):
                             elif event.key == pygame.K_r: # SHIFT + R, resize current map
                                 self.set_inputmode(True, "resizemap_x", "Resize, new X > ")
                             elif event.key == pygame.K_f: # SHIFT + F, set flags for newly placed tiles
-                                self.newtileflags = []
-                                self.set_inputmode(True, "setflag", "Flags > ")
+                                if not self.newtileflags:
+                                    self.newtileflags = []
+                                    self.set_inputmode(True, "setflag", "Flags > ")
+                                else: # Toggle off if active
+                                    self.newtileflags = []
 
                         elif event.key == pygame.K_f: # F, set foreground mode
                             self.foreg_mode = not self.foreg_mode
-                            print("Foreground mode", self.foreg_mode)
                         elif event.key == pygame.K_DOWN: # Down arrow, scroll palette down
                             self.palette_pad = max(0, min(self.palette_pad_av, self.palette_pad + 1))
                             upd_rel_sect = True
@@ -308,9 +316,9 @@ class Editor(object):
                         else: # Place tile
                             if self.foreg_mode:
                                 if i == 0:
-                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], None, True)
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], [], True)
                                 else:
-                                    self.map_changetile(mouse_tileposx, mouse_tileposy, -1, None, True)
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, -1, [], True)
                             else:
                                 self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], self.newtileflags, False)
 
@@ -350,7 +358,6 @@ class Editor(object):
                     self.display.blit(tmp_textrender, (self.palette_surface.get_width() + 4, 0))
             except IndexError:
                 pass
-
 
             # Save/load info text
             if self.inputting:
