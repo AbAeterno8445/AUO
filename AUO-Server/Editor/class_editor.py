@@ -29,6 +29,7 @@ class Editor(object):
 
         self.selected_tile = [0, 0]
         self.foreg_mode = False
+        self.newtileflags = []
 
         self.font = pygame.font.Font("monobit.ttf", 32)
         self.font_color = pygame.Color(255, 255, 255)
@@ -50,6 +51,11 @@ class Editor(object):
 
         self.palette_pad_av = palette_rows - math.ceil((disp_h - self.settings_surface.get_height()) / 32) + 1
 
+    # Scales tiles surface to current map size
+    def updatesize_tilesurface(self):
+        pass # does not yet work correctly
+        #self.tiles_surface = pygame.transform.scale(self.tiles_surface, (self.map.width * 32, self.map.height * 32))
+
     # Unload tile sprites from map
     def map_removetiles(self):
         if self.map.loaded:
@@ -67,7 +73,7 @@ class Editor(object):
                 if tile.foreg_tile:
                     self.spr_list_maptiles_fg.add(tile.foreg_tile)
 
-    def load_map(self, mapname):
+    def map_load(self, mapname):
         map_path = "../data/maps/" + mapname
         print("Loading map " + mapname + "...")
         if os.path.isfile(map_path):
@@ -77,12 +83,14 @@ class Editor(object):
 
             self.camera_pos.x = self.palette_surface.get_width() + self.map.width * 16
             self.camera_pos.y += self.map.height * 16
+
+            self.updatesize_tilesurface()
             return True
         else:
             print("Could not find map!")
             return False
 
-    def save_map(self, mapname=""):
+    def map_save(self, mapname=""):
         if not mapname:
             mapname = self.map.name
         map_path = "../data/maps/" + mapname
@@ -91,19 +99,32 @@ class Editor(object):
         else:
             print("No map loaded!")
 
-    def new_map(self, name, xsize, ysize):
+    def map_new(self, name, xsize, ysize):
         self.map_removetiles()
         self.map.newmap(name, xsize, ysize)
         self.map_addtiles()
+        self.updatesize_tilesurface()
 
     def map_resize(self, newsize_x, newsize_y):
         self.map_removetiles()
         self.map.resize(newsize_x, newsize_y)
         self.map_addtiles()
+        self.updatesize_tilesurface()
 
-    def map_changetile(self, tx, ty, newtile, foreg=False):
+    def map_changetile(self, tx, ty, newtile, flags, foreg=False):
         try:
             changed_tile = self.map.map_data[ty][tx]
+
+            # Flags list including subflags
+            flags_full = []
+            for f in flags:
+                tmp_flag = f.split('/')
+                if len(tmp_flag) == 1:
+                    flags_full.append(tmp_flag[0])
+                else:
+                    flags_full.append(tmp_flag)
+            changed_tile.flags = flags_full
+
             if not foreg:
                 self.spr_list_maptiles.remove(changed_tile)
                 changed_tile.set_tile(newtile)
@@ -118,7 +139,7 @@ class Editor(object):
         except: pass
         return False
 
-    def set_inputmode(self, active, action="", info="", inp="",):
+    def set_inputmode(self, active, action="", info="", inp=""):
         self.inputting = active
         if self.inputting:
             self.input_action = action
@@ -173,9 +194,9 @@ class Editor(object):
                         if event.key == pygame.K_RETURN: # Enter - process input
                             inp_react = False
                             if self.input_action == "save": # Save map
-                                self.save_map(self.text_input)
+                                self.map_save(self.text_input)
                             elif self.input_action == "load": # Load map
-                                self.load_map(self.text_input)
+                                self.map_load(self.text_input)
                             elif self.input_action == "newmap_name": # New map name
                                 self.text_input = self.text_input.strip()
                                 if not self.text_input:
@@ -196,9 +217,9 @@ class Editor(object):
                                             self.set_inputmode(True, "newmap_y", "New map Y size > ")
                                             inp_react = True
                                         else: # New map done (if more flags are needed, add them here and continue processing)
-                                            self.save_map()
+                                            self.map_save()
                                             print("Creating new map \"" + self.input_data["newmap_name"] + "\"...")
-                                            self.new_map(self.input_data["newmap_name"], self.input_data["newmap_x"], self.input_data["newmap_y"])
+                                            self.map_new(self.input_data["newmap_name"], self.input_data["newmap_x"], self.input_data["newmap_y"])
                                     else:
                                         print("New map - Invalid number!")
 
@@ -218,6 +239,9 @@ class Editor(object):
                                             self.map_resize(self.input_data["resizemap_x"], self.input_data["resizemap_y"])
                                     else:
                                         print("Resize map - Invalid number!")
+
+                            elif self.input_action == "setflag":
+                                self.newtileflags = self.text_input.strip().split(':')
 
                             if not inp_react:
                                 self.set_inputmode(False, "")
@@ -239,6 +263,9 @@ class Editor(object):
                                 self.set_inputmode(True, "newmap_name", "New map name > ")
                             elif event.key == pygame.K_r: # SHIFT + R, resize current map
                                 self.set_inputmode(True, "resizemap_x", "Resize, new X > ")
+                            elif event.key == pygame.K_f: # SHIFT + F, set flags for newly placed tiles
+                                self.newtileflags = []
+                                self.set_inputmode(True, "setflag", "Flags > ")
 
                         elif event.key == pygame.K_f: # F, set foreground mode
                             self.foreg_mode = not self.foreg_mode
@@ -281,11 +308,11 @@ class Editor(object):
                         else: # Place tile
                             if self.foreg_mode:
                                 if i == 0:
-                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], True)
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], None, True)
                                 else:
-                                    self.map_changetile(mouse_tileposx, mouse_tileposy, -1, True)
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, -1, None, True)
                             else:
-                                self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], False)
+                                self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], self.newtileflags, False)
 
             self.display.fill((0, 0, 0))
 
@@ -307,13 +334,28 @@ class Editor(object):
             if self.foreg_mode:
                 str_modes += "Foreground / "
 
-            tmp_text = self.font.render("Active modes: " + str_modes, False, self.font_color)
-            self.settings_surface.blit(tmp_text, (4,4))
+            tmp_textrender = self.font.render("Active modes: " + str_modes, False, self.font_color)
+            self.settings_surface.blit(tmp_textrender, (4,4))
+
+            # Flags info text
+            if self.newtileflags:
+                tmp_textrender = self.font.render("Flags: " + str(self.newtileflags), False, self.font_color)
+                self.settings_surface.blit(tmp_textrender, (4, 36))
+
+            # Selected tile info
+            try:
+                tmp_tile = self.map.map_data[mouse_tileposy][mouse_tileposx]
+                if tmp_tile:
+                    tmp_textrender = self.font.render("x: " + str(tmp_tile.pos[0]) + " y: " + str(tmp_tile.pos[1]) + " flags: " + str(tmp_tile.flags), False, self.font_color)
+                    self.display.blit(tmp_textrender, (self.palette_surface.get_width() + 4, 0))
+            except IndexError:
+                pass
+
 
             # Save/load info text
             if self.inputting:
-                tmp_text = self.font.render(self.text_info + self.text_input, False, self.font_color)
-                self.settings_surface.blit(tmp_text, (4, self.settings_surface.get_height() - tmp_text.get_height() - 4))
+                tmp_textrender = self.font.render(self.text_info + self.text_input, False, self.font_color)
+                self.settings_surface.blit(tmp_textrender, (4, self.settings_surface.get_height() - tmp_textrender.get_height() - 4))
 
             self.display.blit(self.settings_surface, (0, self.display.get_height() - self.settings_surface.get_height()))
 
