@@ -23,9 +23,21 @@ class Tile(pygame.sprite.DirtySprite):
 
         self.dirty = 1
 
+        # Illumination/visibility
+        self.visible = False
+        self.explored = False
+        self.lightlevel = 0
+
     def set_tile(self, new_tile):
         self.tile_id = new_tile
         self.image = self.texture.subsurface(((self.tile_id % 16) * 32 + (self.tile_id % 16) * 2, floor(self.tile_id / 16) * 32 + floor(self.tile_id / 16) * 2, 32, 32))
+
+    def set_lightlevel(self, newlevel):
+        self.lightlevel = newlevel
+        self.update_lightlevel()
+
+    def update_lightlevel(self):
+        self.image.set_alpha(max(0, min(255, self.lightlevel * 16)))
 
     # Set foreground tile. -1 removes current foreground
     def set_foreg(self, foreg_tile):

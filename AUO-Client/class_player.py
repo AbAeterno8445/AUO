@@ -19,6 +19,8 @@ class Player(pygame.sprite.DirtySprite):
         self.char = self.ogchar
         self.char_anim = 0
 
+        self.moved = False
+
         self.ogimage = pygame.image.load("assets/charset_3.png")
         self.ogimage.set_colorkey((255,0,255))
         self.image = self.ogimage.subsurface(((self.char % 16) * 32 + (self.char % 16)*2, floor(self.char / 16) * 32 + floor(self.char / 16)*2, 32, 32))
@@ -32,11 +34,13 @@ class Player(pygame.sprite.DirtySprite):
                 self.speed_cd = floor(self.speed * 60)
                 self.x = newpos_x
                 self.y = newpos_y
+                self.moved = True
                 return True
         return False
 
     def set_pos(self, px, py):
         self.x, self.y = px, py
+        self.moved = True
         self.update()
 
     def update(self):

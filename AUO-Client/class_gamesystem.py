@@ -96,6 +96,7 @@ class GameSystem(object):
             self.spritelist.update()
 
             self.display.fill((0,0,0))
+            self.game_surface.fill((0,0,0))
 
             # Draw map
             vis_tiles = pygame.sprite.LayeredDirty()
@@ -113,9 +114,11 @@ class GameSystem(object):
                         break
                     try:
                         tmp_maptile = self.map.map_data[j][i]
-                        vis_tiles.add(tmp_maptile)
-                        if tmp_maptile.foreg_tile:
-                            vis_tiles.add(tmp_maptile.foreg_tile)
+
+                        if tmp_maptile.visible:
+                            vis_tiles.add(tmp_maptile)
+                            if tmp_maptile.foreg_tile: # Foreground tile
+                                vis_tiles.add(tmp_maptile.foreg_tile)
                     except IndexError:
                         pass
 
@@ -153,7 +156,12 @@ class GameSystem(object):
         if not (mv_axis[0] == 0 and mv_axis[1] == 0):
             if self.player.move_axis(mv_axis, self.map):
                 self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
-                self.update_camera_plpos()
+
+        # Update player's map visibility
+        if self.player.moved:
+            self.update_camera_plpos()
+            self.map.cast_light(self.player.x, self.player.y, 6, True)
+            self.player.moved = False
 
     def server_listener(self):
         server_data = self.conn.receive(False)
@@ -176,12 +184,10 @@ class GameSystem(object):
                 newplayer = Player(int(server_data[1]), self.map.spawnpos, int(server_data[2]))
                 self.playerlist.append(newplayer)
                 self.spritelist.add(newplayer)
-                print("Player " + str(newplayer.id) + " has joined!")
 
             elif server_data[0] == "remove_pl": # Remove player
                 for pl in self.playerlist:
                     if pl.id == int(server_data[1]):
-                        print("Player " + str(pl.id) + " has left!")
                         self.spritelist.remove(pl)
                         self.playerlist.remove(pl)
                         break

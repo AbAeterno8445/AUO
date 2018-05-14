@@ -69,3 +69,67 @@ class GameMap(object):
             return False
 
         return self.map_data
+
+    def do_fov(self, x, y, radius, row, start_slope, end_slope, xx, xy, yx, yy):
+        if start_slope < end_slope: return
+
+        next_start_slope = start_slope
+        for i in range(row, radius + 1):
+            blocked = False
+            for dx in range(-i, 1):
+                dy = -i
+                l_slope = (dx - 0.5) / (dy + 0.5)
+                r_slope = (dx + 0.5) / (dy - 0.5)
+
+                if start_slope < r_slope: continue
+                elif end_slope > l_slope: break
+
+                sax = dx * xx + dy * xy
+                say = dx * yx + dy * yy
+                if (sax < 0 and abs(sax) > x) or (say < 0 and abs(say) > y): continue
+
+                ax = x + sax
+                ay = y + say
+                if ax >= self.width or ay >= self.height: continue
+
+                try:
+                    tmp_tile = self.map_data[ay][ax]
+                except IndexError:
+                    continue
+                else:
+                    # Tile is visible
+                    if dx ** 2 + dy ** 2 < radius ** 2:
+                        tmp_tile.visible = True
+                        if tmp_tile.foreg_tile:
+                            tmp_tile.foreg_tile.visible = True
+
+                    if blocked:
+                        if tmp_tile.has_flag("bv"):
+                            next_start_slope = r_slope
+                            continue
+                        else:
+                            blocked = False
+                            start_slope = next_start_slope
+                    elif tmp_tile.has_flag("bv"):
+                        blocked = True
+                        next_start_slope = r_slope
+                        self.do_fov(x, y, radius, i + 1, start_slope, l_slope, xx, xy, yx, yy)
+            if blocked: break
+
+    def cast_light(self, x, y, radius, player=False):
+        multipliers = [
+            [1, 0, 0, -1, -1, 0, 0, 1],
+            [0, 1, -1, 0, 0, -1, 1, 0],
+            [0, 1, 1, 0, 0, -1, -1, 0],
+            [1, 0, 0, 1, -1, 0, 0, -1]
+        ]
+
+        for row in self.map_data:
+            for tile in row:
+                tile.visible = False
+
+        if player:
+            self.map_data[y][x].visible = True
+
+        for i in range(8):
+            self.do_fov(x, y, radius, 1, 1.0, 0.0, multipliers[0][i], multipliers[1][i], multipliers[2][i], multipliers[3][i])
