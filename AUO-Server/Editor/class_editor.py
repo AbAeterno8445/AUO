@@ -21,8 +21,6 @@ class Editor(object):
 
         self.clock = pygame.time.Clock()
 
-        self.spr_list_maptiles = pygame.sprite.LayeredDirty()
-        self.spr_list_maptiles_fg = pygame.sprite.LayeredDirty()
         self.spr_list_palette = pygame.sprite.LayeredDirty()
         for ptile in self.map.tile_palette:
             self.spr_list_palette.add(ptile)
@@ -53,33 +51,14 @@ class Editor(object):
 
     # Scales tiles surface to current map size
     def updatesize_tilesurface(self):
-        pass # does not yet work correctly
-        #self.tiles_surface = pygame.transform.scale(self.tiles_surface, (self.map.width * 32, self.map.height * 32))
-
-    # Unload tile sprites from map
-    def map_removetiles(self):
-        if self.map.loaded:
-            for row in self.map.map_data:
-                for tile in row:
-                    if tile.foreg_tile:
-                        self.spr_list_maptiles_fg.remove(tile.foreg_tile)
-                    self.spr_list_maptiles.remove(tile)
-
-    # Load tile sprites from map
-    def map_addtiles(self):
-        for row in self.map.map_data:
-            for tile in row:
-                self.spr_list_maptiles.add(tile)
-                if tile.foreg_tile:
-                    self.spr_list_maptiles_fg.add(tile.foreg_tile)
+        #pass # does not yet work correctly
+        self.tiles_surface = pygame.transform.scale(self.tiles_surface, (self.map.width * 32, self.map.height * 32))
 
     def map_load(self, mapname):
         map_path = "../data/maps/" + mapname
         print("Loading map " + mapname + "...")
         if os.path.isfile(map_path):
-            self.map_removetiles()
             self.map.load(map_path)
-            self.map_addtiles()
 
             self.camera_pos.x = self.palette_surface.get_width() + self.map.width * 16
             self.camera_pos.y = self.map.height * 16 - self.settings_surface.get_height() / 2
@@ -100,15 +79,11 @@ class Editor(object):
             print("No map loaded!")
 
     def map_new(self, name, xsize, ysize):
-        self.map_removetiles()
         self.map.newmap(name, xsize, ysize)
-        self.map_addtiles()
         self.updatesize_tilesurface()
 
     def map_resize(self, newsize_x, newsize_y):
-        self.map_removetiles()
         self.map.resize(newsize_x, newsize_y)
-        self.map_addtiles()
         self.updatesize_tilesurface()
 
     def map_changetile(self, tx, ty, newtile, flags, foreg=False):
@@ -131,15 +106,9 @@ class Editor(object):
             changed_tile.flags = flags_full
 
             if not foreg:
-                self.spr_list_maptiles.remove(changed_tile)
                 changed_tile.set_tile(newtile)
-                self.spr_list_maptiles.add(changed_tile)
             else:
-                if changed_tile.foreg_tile:
-                    changed_tile.dirty = 1 # Hack for clearing deleted foreground
-                    self.spr_list_maptiles_fg.remove(changed_tile.foreg_tile)
-                if changed_tile.set_foreg(newtile):
-                    self.spr_list_maptiles_fg.add(changed_tile.foreg_tile)
+                changed_tile.set_foreg(newtile)
 
             return True
         except: pass
@@ -157,12 +126,6 @@ class Editor(object):
         return False
 
     def main_loop(self):
-        # Background for map surface
-        background = pygame.Surface(self.display.get_size())
-        background = background.convert()
-        background.fill((0, 0, 0))
-        self.spr_list_maptiles.clear(self.display, background)
-
         # Tile selector rectangles
         rect_sel = [
             [pygame.Color(220, 30, 30), pygame.Rect(0, 0, 32, 32)],
@@ -325,8 +288,29 @@ class Editor(object):
             self.display.fill((0, 0, 0))
 
             self.spr_list_palette.draw(self.palette_surface) # Draw tiles to palette surface
-            self.spr_list_maptiles.draw(self.tiles_surface) # Draw maptiles to map surface
-            self.spr_list_maptiles_fg.draw(self.tiles_surface) # Foreground tiles
+            # Draw maptiles to map surface
+            vis_tiles = pygame.sprite.LayeredDirty()
+            # Visibility range in X axis
+            vis_x_min = max(0, math.floor((self.palette_surface.get_width() - self.camera_pos.x) / 32))
+            vis_x_max = max(0, math.ceil((self.display.get_width() - self.camera_pos.x) / 32))
+            # Visibility range in Y axis
+            vis_y_min = max(0, math.floor((-self.camera_pos.y) / 32))
+            vis_y_max = max(0, math.ceil((self.display.get_height() - self.camera_pos.y) / 32))
+            for i in range(vis_x_min, vis_x_max):
+                if i > self.map.width:
+                    break
+                for j in range(vis_y_min, vis_y_max):
+                    if j > self.map.height:
+                        break
+                    try:
+                        tmp_maptile = self.map.map_data[j][i]
+                        vis_tiles.add(tmp_maptile)
+                        if tmp_maptile.foreg_tile:
+                            vis_tiles.add(tmp_maptile.foreg_tile)
+                    except IndexError:
+                        pass
+
+            vis_tiles.draw(self.tiles_surface)
 
             # Draw map surface
             self.display.blit(self.tiles_surface, self.camera_pos)
@@ -382,6 +366,6 @@ class Editor(object):
             for r in rect_sel:
                 pygame.draw.rect(self.display, r[0], r[1], 1)
 
-            pygame.display.update((self.tiles_surface.get_rect(), self.settings_surface.get_rect()))
+            pygame.display.update(self.display.get_rect())
 
             self.clock.tick(60)

@@ -15,10 +15,11 @@ def main():
         editor.main_loop()
     except:
         print(traceback.print_exc())
-        save_prompt = input("Editor crashed. Save map progress? (Y to save) > ")
-        if save_prompt.lower() == "y":
-            if editor.map.save():
-                print("Map saved.")
+        if editor.map.loaded:
+            save_prompt = input("Editor crashed. Save map progress? (Y to save) > ")
+            if save_prompt.lower() == "y":
+                if editor.map.save():
+                    print("Map saved.")
 
 if __name__ == "__main__":
     pygame.init()
