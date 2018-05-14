@@ -61,8 +61,8 @@ class Editor(object):
         if os.path.isfile(map_path):
             self.map.load(map_path)
 
-            self.camera_pos.x = self.palette_surface.get_width() + self.map.width * 16
-            self.camera_pos.y = self.map.height * 16 - self.settings_surface.get_height() / 2
+            self.camera_pos.x = self.palette_surface.get_width()
+            self.camera_pos.y = 0
 
             self.updatesize_tilesurface()
             return True
@@ -112,7 +112,7 @@ class Editor(object):
                 changed_tile.set_foreg(newtile)
 
             return True
-        except: pass
+        except IndexError: pass
         return False
 
     def set_inputmode(self, active, action="", info="", inp=""):
@@ -297,6 +297,7 @@ class Editor(object):
             # Visibility range in Y axis
             vis_y_min = max(0, floor((-self.camera_pos.y) / 32))
             vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+
             for i in range(vis_x_min, vis_x_max):
                 if i > self.map.width:
                     break

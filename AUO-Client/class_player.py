@@ -19,8 +19,8 @@ class Player(pygame.sprite.DirtySprite):
         self.char = self.ogchar
         self.char_anim = 0
 
-        self.ogimage = pygame.image.load("assets/charset_1.png")
-        self.ogimage = pygame.transform.scale2x(self.ogimage)
+        self.ogimage = pygame.image.load("assets/charset_3.png")
+        self.ogimage.set_colorkey((255,0,255))
         self.image = self.ogimage.subsurface(((self.char % 16) * 32 + (self.char % 16)*2, floor(self.char / 16) * 32 + floor(self.char / 16)*2, 32, 32))
         self.rect = self.image.get_rect()
 

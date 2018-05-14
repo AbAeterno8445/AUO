@@ -74,12 +74,6 @@ class GameSystem(object):
     def main_loop(self):
         ping_ticker = 300
 
-        # Background
-        background = pygame.Surface(self.display.get_size())
-        background = background.convert()
-        background.fill((0, 0, 0))
-        self.spritelist.clear(self.display, background)
-
         done = False
         while not done:
             for event in pygame.event.get():
