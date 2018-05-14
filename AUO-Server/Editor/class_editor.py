@@ -1,4 +1,5 @@
-import os.path, math
+import os.path
+from math import *
 from class_map import GameMap
 import pygame
 from pygame.math import Vector2
@@ -44,10 +45,10 @@ class Editor(object):
         self.tiles_surface = pygame.Surface((disp_w, disp_h))
         self.settings_surface = pygame.Surface((disp_w, 128))
 
-        palette_rows = math.ceil(len(self.map.tile_palette) / self.map.palette_rowlen)
+        palette_rows = ceil(len(self.map.tile_palette) / self.map.palette_rowlen)
         self.palette_surface = pygame.Surface((self.map.palette_rowlen * 32, palette_rows * 32))
 
-        self.palette_pad_av = palette_rows - math.ceil((disp_h - self.settings_surface.get_height()) / 32) + 1
+        self.palette_pad_av = palette_rows - ceil((disp_h - self.settings_surface.get_height()) / 32) + 1
 
     # Scales tiles surface to current map size
     def updatesize_tilesurface(self):
@@ -137,12 +138,12 @@ class Editor(object):
             # Mouse position
             mouse_pos = pygame.mouse.get_pos()
             # Mouse position aligned to 32x32 grid
-            mouse_pos32x, mouse_pos32y = math.floor(mouse_pos[0] / 32), math.floor(mouse_pos[1] / 32)
+            mouse_pos32x, mouse_pos32y = floor(mouse_pos[0] / 32), floor(mouse_pos[1] / 32)
             # Mouse tile position within map surface
             mouse_tileposx, mouse_tileposy = 0, 0
             if self.map.loaded:
-                mouse_tileposx = min(max(math.floor((mouse_pos[0] - self.camera_pos.x) / 32), 0), self.map.width - 1)
-                mouse_tileposy = min(max(math.floor((mouse_pos[1] - self.camera_pos.y) / 32), 0), self.map.height - 1)
+                mouse_tileposx = min(max(floor((mouse_pos[0] - self.camera_pos.x) / 32), 0), self.map.width - 1)
+                mouse_tileposy = min(max(floor((mouse_pos[1] - self.camera_pos.y) / 32), 0), self.map.height - 1)
 
             # Keyboard keys held
             if not self.inputting:
@@ -291,11 +292,11 @@ class Editor(object):
             # Draw maptiles to map surface
             vis_tiles = pygame.sprite.LayeredDirty()
             # Visibility range in X axis
-            vis_x_min = max(0, math.floor((self.palette_surface.get_width() - self.camera_pos.x) / 32))
-            vis_x_max = max(0, math.ceil((self.display.get_width() - self.camera_pos.x) / 32))
+            vis_x_min = max(0, floor((self.palette_surface.get_width() - self.camera_pos.x) / 32))
+            vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
             # Visibility range in Y axis
-            vis_y_min = max(0, math.floor((-self.camera_pos.y) / 32))
-            vis_y_max = max(0, math.ceil((self.display.get_height() - self.camera_pos.y) / 32))
+            vis_y_min = max(0, floor((-self.camera_pos.y) / 32))
+            vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
             for i in range(vis_x_min, vis_x_max):
                 if i > self.map.width:
                     break
@@ -356,13 +357,13 @@ class Editor(object):
                 if not self.palette_surface.get_rect().collidepoint(mouse_pos):
                     pygame.draw.rect(self.display, (200, 127, 30), (self.camera_pos.x + mouse_tileposx * 32, self.camera_pos.y + mouse_tileposy * 32, 32, 32), 1)
                 else: # Selecting tile
-                    pygame.draw.rect(self.display, (220, 220, 50), (math.floor(mouse_pos[0] / 32) * 32, math.floor(mouse_pos[1] / 32) * 32, 32, 32), 1)
+                    pygame.draw.rect(self.display, (220, 220, 50), (floor(mouse_pos[0] / 32) * 32, floor(mouse_pos[1] / 32) * 32, 32, 32), 1)
 
             # Selected tile rectangle (primary/secondary)
             if upd_rel_sect:
                 for i in range(2):
                     rect_sel[i][1].topleft = (self.selected_tile[i] % self.map.palette_rowlen * 32 + i,
-                                              math.floor((self.selected_tile[i] - self.palette_pad * self.map.palette_rowlen) / self.map.palette_rowlen) * 32 + i)
+                                              floor((self.selected_tile[i] - self.palette_pad * self.map.palette_rowlen) / self.map.palette_rowlen) * 32 + i)
             for r in rect_sel:
                 pygame.draw.rect(self.display, r[0], r[1], 1)
 

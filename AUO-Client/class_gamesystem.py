@@ -2,6 +2,7 @@ from class_player import *
 from class_map import GameMap
 from patcher import *
 from Mastermind import *
+from math import *
 from pygame.math import Vector2
 import pygame
 import os.path
@@ -43,6 +44,10 @@ class GameSystem(object):
         else:
             self.camera_pos.y = 0
 
+    # Update tile surface size to map size
+    def updatesize_tilesurface(self):
+        self.game_surface = pygame.transform.scale(self.game_surface, (self.map.width * 32, self.map.height * 32))
+
     def connect(self, host, port):
         print("Connected to " + host + " using port " + str(port) + ".")
         self.conn.connect(host, port)
@@ -62,18 +67,9 @@ class GameSystem(object):
 
     def load_map(self, mapname):
         map_path = "data/maps/" + mapname
-        # Unload current map if loaded
-        if self.map.loaded:
-            for row in self.map.map_data:
-                for tile in row:
-                    self.spritelist.remove(tile)
-
         map_tiles = self.map.load(map_path)
-        for row in map_tiles:
-            for tile in row:
-                self.spritelist.add(tile)
-                if tile.foreg_tile:
-                    self.spritelist.add(tile.foreg_tile)
+
+        self.updatesize_tilesurface()
 
     def main_loop(self):
         ping_ticker = 300
@@ -107,9 +103,35 @@ class GameSystem(object):
 
             self.display.fill((0,0,0))
 
+            # Draw map
+            vis_tiles = pygame.sprite.LayeredDirty()
+            # Visibility range in X axis
+            vis_x_min = max(0, floor(-self.camera_pos.x / 32))
+            vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
+            # Visibility range in Y axis
+            vis_y_min = max(0, floor(-self.camera_pos.y / 32))
+            vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+            for i in range(vis_x_min, vis_x_max):
+                if i > self.map.width:
+                    break
+                for j in range(vis_y_min, vis_y_max):
+                    if j > self.map.height:
+                        break
+                    try:
+                        tmp_maptile = self.map.map_data[j][i]
+                        vis_tiles.add(tmp_maptile)
+                        if tmp_maptile.foreg_tile:
+                            vis_tiles.add(tmp_maptile.foreg_tile)
+                    except IndexError:
+                        pass
+
+            vis_tiles.draw(self.game_surface)
+
+            # Draw sprites
             self.spritelist.draw(self.game_surface)
             self.display.blit(self.game_surface, self.camera_pos)
-            pygame.display.update(self.game_surface.get_rect())
+
+            pygame.display.update()
             self.clock.tick(60)
 
             # Keep connection alive
