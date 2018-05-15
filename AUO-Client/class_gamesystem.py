@@ -115,9 +115,14 @@ class GameSystem(object):
                     try:
                         tmp_maptile = self.map.map_data[j][i]
 
-                        if tmp_maptile.visible:
+                        if tmp_maptile.light_visible:
+                            tmp_maptile.set_lightlevel(16)
+                        elif tmp_maptile.explored:
+                            tmp_maptile.set_lightlevel(6)
+
+                        if tmp_maptile.light_visible or tmp_maptile.explored:
                             vis_tiles.add(tmp_maptile)
-                            if tmp_maptile.foreg_tile: # Foreground tile
+                            if tmp_maptile.foreg_tile:  # Foreground tile
                                 vis_tiles.add(tmp_maptile.foreg_tile)
                     except IndexError:
                         pass

@@ -24,7 +24,7 @@ class Tile(pygame.sprite.DirtySprite):
         self.dirty = 1
 
         # Illumination/visibility
-        self.visible = False
+        self.light_visible = False
         self.explored = False
         self.lightlevel = 0
 

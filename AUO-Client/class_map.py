@@ -99,9 +99,8 @@ class GameMap(object):
                 else:
                     # Tile is visible
                     if dx ** 2 + dy ** 2 < radius ** 2:
-                        tmp_tile.visible = True
-                        if tmp_tile.foreg_tile:
-                            tmp_tile.foreg_tile.visible = True
+                        tmp_tile.light_visible = True
+                        tmp_tile.explored = True
 
                     if blocked:
                         if tmp_tile.has_flag("bv"):
@@ -126,10 +125,10 @@ class GameMap(object):
 
         for row in self.map_data:
             for tile in row:
-                tile.visible = False
+                tile.light_visible = False
 
         if player:
-            self.map_data[y][x].visible = True
+            self.map_data[y][x].light_visible = True
 
         for i in range(8):
             self.do_fov(x, y, radius, 1, 1.0, 0.0, multipliers[0][i], multipliers[1][i], multipliers[2][i], multipliers[3][i])
