@@ -2,9 +2,11 @@ import pygame
 from math import floor
 
 class Tile(pygame.sprite.DirtySprite):
-    def __init__(self, tile_id, texture, pos, flags=None):
+    def __init__(self, tile_id, texture, texture_gs, pos, flags=None):
         pygame.sprite.DirtySprite.__init__(self)
         self.texture = texture
+        self.texture_gs = texture_gs
+        self.grayscaled = False
 
         self.pos = pos
         self.draw_pos = (pos[0] * 32, pos[1] * 32)
@@ -28,11 +30,26 @@ class Tile(pygame.sprite.DirtySprite):
         self.explored = False
         self.lightlevel = 0
 
-    def set_tile(self, new_tile):
+    def toggle_grayscale(self, gs=None):
+        if self.foreg_tile:
+            self.foreg_tile.toggle_grayscale(gs)
+        if gs is None:
+            self.set_tile(self.tile_id, not self.grayscaled)
+        else:
+            if not self.grayscaled == gs:
+                self.grayscaled = gs
+                self.set_tile(self.tile_id, self.grayscaled)
+
+    def set_tile(self, new_tile, grayscale=False):
         self.tile_id = new_tile
-        self.image = self.texture.subsurface(((self.tile_id % 16) * 32 + (self.tile_id % 16) * 2, floor(self.tile_id / 16) * 32 + floor(self.tile_id / 16) * 2, 32, 32))
+        tmp_texture = self.texture
+        if grayscale:
+            tmp_texture = self.texture_gs
+        self.image = tmp_texture.subsurface(((self.tile_id % 16) * 32 + (self.tile_id % 16) * 2, floor(self.tile_id / 16) * 32 + floor(self.tile_id / 16) * 2, 32, 32))
 
     def set_lightlevel(self, newlevel):
+        if self.foreg_tile:
+            self.foreg_tile.set_lightlevel(newlevel)
         self.lightlevel = newlevel
         self.update_lightlevel()
 
@@ -49,7 +66,7 @@ class Tile(pygame.sprite.DirtySprite):
 
         # Alter foreground tile object
         if not self.foreg_tile: # New foreground tile
-            self.foreg_tile = Tile(foreg_tile, self.texture, self.pos)
+            self.foreg_tile = Tile(foreg_tile, self.texture, self.texture_gs, self.pos)
             self.foreg_tile.dirty = 2
         else:
             self.foreg_tile.set_tile(foreg_tile)

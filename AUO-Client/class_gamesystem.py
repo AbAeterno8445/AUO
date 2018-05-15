@@ -116,9 +116,11 @@ class GameSystem(object):
                         tmp_maptile = self.map.map_data[j][i]
 
                         if tmp_maptile.light_visible:
+                            tmp_maptile.toggle_grayscale(False)
                             tmp_maptile.set_lightlevel(16)
                         elif tmp_maptile.explored:
-                            tmp_maptile.set_lightlevel(6)
+                            tmp_maptile.toggle_grayscale(True)
+                            tmp_maptile.set_lightlevel(8)
 
                         if tmp_maptile.light_visible or tmp_maptile.explored:
                             vis_tiles.add(tmp_maptile)

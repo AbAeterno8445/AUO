@@ -11,6 +11,8 @@ class GameMap(object):
 
         self.tile_texture = pygame.image.load("assets/tileset.png")
         self.tile_texture.set_colorkey((255,0,255))
+        self.tile_texture_gs = pygame.image.load("assets/tileset_gs.png")
+        self.tile_texture_gs.set_colorkey((255,0,255))
         self.loaded = False
         self.map_data = []
 
@@ -56,7 +58,7 @@ class GameMap(object):
                                 tile_flags.append(flag[0])
                             else:
                                 tile_flags.append(flag)
-                        newtile = Tile(int(tile_data[0]), self.tile_texture, (x,y), tile_flags)
+                        newtile = Tile(int(tile_data[0]), self.tile_texture, self.tile_texture_gs, (x,y), tile_flags)
                         # Tile is spawnpoint
                         if newtile.has_flag("spawn"):
                             self.spawnpos = (x, y)
