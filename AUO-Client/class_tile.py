@@ -30,6 +30,15 @@ class Tile(pygame.sprite.DirtySprite):
         self.explored = False
         self.lightlevel = 0
 
+        self.wallshadow = None
+
+    def get_wallshadow(self):
+        if self.wallshadow is None:
+            self.wallshadow = pygame.sprite.DirtySprite()
+            self.wallshadow.image = pygame.image.load("assets/wallshadow.png")
+            self.wallshadow.rect = self.wallshadow.image.get_rect(topleft=(self.draw_pos[0] - 8, self.draw_pos[1] - 8))
+        return self.wallshadow
+
     def toggle_grayscale(self, gs=None):
         if self.foreg_tile:
             self.foreg_tile.toggle_grayscale(gs)

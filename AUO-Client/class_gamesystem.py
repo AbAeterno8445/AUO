@@ -100,12 +100,15 @@ class GameSystem(object):
 
             # Draw map
             vis_tiles = pygame.sprite.LayeredDirty()
+            vis_walls = pygame.sprite.LayeredDirty()
             # Visibility range in X axis
             vis_x_min = max(0, floor(-self.camera_pos.x / 32))
             vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
             # Visibility range in Y axis
             vis_y_min = max(0, floor(-self.camera_pos.y / 32))
             vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+            # Rendering walls and shadows in order
+            walls_list = []
             for i in range(vis_x_min, vis_x_max):
                 if i > self.map.width:
                     break
@@ -123,13 +126,22 @@ class GameSystem(object):
                             tmp_maptile.set_lightlevel(8)
 
                         if tmp_maptile.light_visible or tmp_maptile.explored:
-                            vis_tiles.add(tmp_maptile)
+                            if tmp_maptile.has_flag("wall"):
+                                walls_list.append(tmp_maptile)
+                                vis_walls.add(tmp_maptile.get_wallshadow())
+                            else:
+                                vis_tiles.add(tmp_maptile)
                             if tmp_maptile.foreg_tile:  # Foreground tile
                                 vis_tiles.add(tmp_maptile.foreg_tile)
+
                     except IndexError:
                         pass
 
+            for w in walls_list:
+                vis_walls.add(w)
+
             vis_tiles.draw(self.game_surface)
+            vis_walls.draw(self.game_surface)
 
             # Draw sprites
             self.spritelist.draw(self.game_surface)
