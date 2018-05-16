@@ -20,7 +20,7 @@ class GameSystem(object):
 
         self.keys_held = []
 
-        self.playerlist = []
+        self.playerlist = {}
 
         # Map drawing layers
         self.updatelayers = False
@@ -66,7 +66,6 @@ class GameSystem(object):
     def create_player(self):
         self.player = Player(-1, (1,1), randint(0, 63) * 4)
         self.spritelist.add(self.player)
-        self.spritelist.change_layer(self.player, 1)
         self.conn.send("join|" + str(self.player.char))
         self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
 
@@ -216,18 +215,18 @@ class GameSystem(object):
 
             elif server_data[0] == "new_pl": # Create new player
                 newplayer = Player(int(server_data[1]), self.map.spawnpos, int(server_data[2]))
-                self.playerlist.append(newplayer)
+                self.playerlist[int(server_data[1])] = newplayer
                 self.spritelist.add(newplayer)
 
             elif server_data[0] == "remove_pl": # Remove player
-                for pl in self.playerlist:
-                    if pl.id == int(server_data[1]):
-                        self.spritelist.remove(pl)
-                        self.playerlist.remove(pl)
-                        break
+                try:
+                    tmp_player = self.spritelist[int(server_data[1])]
+                except NameError:
+                    pass
+                else:
+                    self.spritelist.remove(tmp_player)
+                    self.playerlist.remove(int(server_data[1]))
 
             elif server_data[0] == "update_pl": # Update player position
-                for pl in self.playerlist:
-                    if pl.id == int(server_data[1]):
-                        pl.set_pos(float(server_data[2]), float(server_data[3]))
-                        break
+                try: self.playerlist[int(server_data[1])].set_pos(float(server_data[2]), float(server_data[3]))
+                except NameError: pass
