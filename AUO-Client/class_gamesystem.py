@@ -15,6 +15,7 @@ class GameSystem(object):
 
         self.display = None
         self.game_surface = None
+        self.entity_surface = None
         self.camera_pos = Vector2(0, 0)
         self.clock = pygame.time.Clock()
 
@@ -33,6 +34,8 @@ class GameSystem(object):
         self.display = pygame.display.set_mode((disp_w, disp_h))
         self.disp_size = (disp_w, disp_h)
         self.game_surface = pygame.Surface((disp_w, disp_h))
+        self.entity_surface = pygame.Surface(self.game_surface.get_size()).convert()
+        self.entity_surface.set_colorkey((255,0,255))
         pygame.display.set_icon(pygame.image.load("assets/AUOicon.png"))
         pygame.display.set_caption("AUO Client")
 
@@ -126,6 +129,17 @@ class GameSystem(object):
         self.vis_walls.draw(self.game_surface)
         self.vis_foreg.draw(self.game_surface)
 
+    # Draws players over visible tiles
+    def update_drawplayers(self):
+        for pl_id, pl_obj in self.playerlist.items():
+            if self.spritelist.has(pl_obj):
+                self.spritelist.remove(pl_obj)
+            try:
+                if self.map.map_data[pl_obj.y][pl_obj.x].light_visible:
+                    self.spritelist.add(pl_obj)
+            except IndexError:
+                pass
+
     def main_loop(self):
         ping_ticker = 300
 
@@ -151,15 +165,18 @@ class GameSystem(object):
             self.spritelist.update()
 
             self.display.fill((0,0,0))
+            self.entity_surface.fill((255,0,255))
 
             if self.updatelayers:
                 self.update_drawlayers()
                 self.updatelayers = False
 
+            # Draw game surface (tiles)
+            self.display.blit(self.game_surface, self.camera_pos)
             # Draw sprites
-            entity_surface = self.game_surface.copy()
-            self.spritelist.draw(entity_surface)
-            self.display.blit(entity_surface, self.camera_pos)
+            self.update_drawplayers()
+            self.spritelist.draw(self.entity_surface)
+            self.display.blit(self.entity_surface, self.camera_pos)
 
             pygame.display.update(self.game_surface.get_rect())
             self.clock.tick(60)
