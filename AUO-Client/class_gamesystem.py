@@ -22,6 +22,11 @@ class GameSystem(object):
 
         self.playerlist = []
 
+        # Map drawing layers
+        self.updatelayers = False
+        self.vis_tiles = pygame.sprite.LayeredDirty()  # Ground tile layer
+        self.vis_walls = pygame.sprite.LayeredDirty()  # Wall tile layer
+        self.vis_foreg = pygame.sprite.LayeredDirty()  # Foreground tile layer
         self.spritelist = pygame.sprite.LayeredDirty()
 
     def init_display(self, disp_w, disp_h):
@@ -71,6 +76,57 @@ class GameSystem(object):
 
         self.updatesize_tilesurface()
 
+    def update_drawlayers(self):
+        self.game_surface.fill((0,0,0))
+        self.vis_tiles.empty()
+        self.vis_walls.empty()
+        self.vis_foreg.empty()
+        # Visibility range in X axis
+        vis_x_min = max(0, floor(-self.camera_pos.x / 32))
+        vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
+        # Visibility range in Y axis
+        vis_y_min = max(0, floor(-self.camera_pos.y / 32))
+        vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+        # Rendering walls and shadows in order
+        walls_list = []
+        for i in range(vis_x_min, vis_x_max):
+            if i > self.map.width:
+                break
+            for j in range(vis_y_min, vis_y_max):
+                if j > self.map.height:
+                    break
+                try:
+                    tmp_maptile = self.map.map_data[j][i]
+
+                    if tmp_maptile.light_visible:
+                        tmp_maptile.toggle_grayscale(False)
+                        tmp_maptile.set_lightlevel(16)
+                    elif tmp_maptile.explored:
+                        tmp_maptile.toggle_grayscale(True)
+                        tmp_maptile.set_lightlevel(8)
+
+                    if tmp_maptile.light_visible or tmp_maptile.explored:
+                        if tmp_maptile.has_flag("wall"):
+                            walls_list.append(tmp_maptile)
+                        else:
+                            self.vis_tiles.add(tmp_maptile)
+
+                        if tmp_maptile.has_flag("shadow"):  # Emit shadow
+                            self.vis_walls.add(tmp_maptile.get_wallshadow())
+
+                        if tmp_maptile.foreg_tile:  # Foreground tile
+                            self.vis_foreg.add(tmp_maptile.foreg_tile)
+
+                except IndexError:
+                    pass
+
+        for w in walls_list:
+            self.vis_walls.add(w)
+
+        self.vis_tiles.draw(self.game_surface)
+        self.vis_walls.draw(self.game_surface)
+        self.vis_foreg.draw(self.game_surface)
+
     def main_loop(self):
         ping_ticker = 300
 
@@ -96,52 +152,10 @@ class GameSystem(object):
             self.spritelist.update()
 
             self.display.fill((0,0,0))
-            self.game_surface.fill((0,0,0))
 
-            # Draw map
-            vis_tiles = pygame.sprite.LayeredDirty()
-            vis_walls = pygame.sprite.LayeredDirty()
-            # Visibility range in X axis
-            vis_x_min = max(0, floor(-self.camera_pos.x / 32))
-            vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
-            # Visibility range in Y axis
-            vis_y_min = max(0, floor(-self.camera_pos.y / 32))
-            vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
-            # Rendering walls and shadows in order
-            walls_list = []
-            for i in range(vis_x_min, vis_x_max):
-                if i > self.map.width:
-                    break
-                for j in range(vis_y_min, vis_y_max):
-                    if j > self.map.height:
-                        break
-                    try:
-                        tmp_maptile = self.map.map_data[j][i]
-
-                        if tmp_maptile.light_visible:
-                            tmp_maptile.toggle_grayscale(False)
-                            tmp_maptile.set_lightlevel(16)
-                        elif tmp_maptile.explored:
-                            tmp_maptile.toggle_grayscale(True)
-                            tmp_maptile.set_lightlevel(8)
-
-                        if tmp_maptile.light_visible or tmp_maptile.explored:
-                            if tmp_maptile.has_flag("wall"):
-                                walls_list.append(tmp_maptile)
-                                vis_walls.add(tmp_maptile.get_wallshadow())
-                            else:
-                                vis_tiles.add(tmp_maptile)
-                            if tmp_maptile.foreg_tile:  # Foreground tile
-                                vis_tiles.add(tmp_maptile.foreg_tile)
-
-                    except IndexError:
-                        pass
-
-            for w in walls_list:
-                vis_walls.add(w)
-
-            vis_tiles.draw(self.game_surface)
-            vis_walls.draw(self.game_surface)
+            if self.updatelayers:
+                self.update_drawlayers()
+                self.updatelayers = False
 
             # Draw sprites
             self.spritelist.draw(self.game_surface)
@@ -180,6 +194,7 @@ class GameSystem(object):
         if self.player.moved:
             self.update_camera_plpos()
             self.map.cast_light(self.player.x, self.player.y, 6, True)
+            self.updatelayers = True
             self.player.moved = False
 
     def server_listener(self):

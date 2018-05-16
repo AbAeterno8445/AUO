@@ -277,6 +277,8 @@ class Editor(object):
                         if self.keys_held[pygame.K_LCTRL]:
                             self.selected_tile[i] = self.map.map_data[mouse_tileposy][mouse_tileposx].tile_id
                             upd_rel_sect = True
+                        elif self.keys_held[pygame.K_LSHIFT]: # SHIFT key - Flag picker
+                            self.newtileflags = self.map.map_data[mouse_tileposy][mouse_tileposx].flags
                         else: # Place tile
                             if self.foreg_mode:
                                 if i == 0:

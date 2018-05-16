@@ -32,7 +32,8 @@ class Tile(pygame.sprite.DirtySprite):
         foreg_flag = self.find_subflag("fg")
         if foreg_tile == -1:
             self.foreg_tile = None
-            self.flags.remove(foreg_flag)
+            if foreg_flag in self.flags:
+                self.flags.remove(foreg_flag)
             return False
 
         # Alter foreground tile object
