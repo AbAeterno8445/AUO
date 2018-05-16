@@ -157,10 +157,11 @@ class GameSystem(object):
                 self.updatelayers = False
 
             # Draw sprites
-            self.spritelist.draw(self.game_surface)
-            self.display.blit(self.game_surface, self.camera_pos)
+            entity_surface = self.game_surface.copy()
+            self.spritelist.draw(entity_surface)
+            self.display.blit(entity_surface, self.camera_pos)
 
-            pygame.display.update()
+            pygame.display.update(self.game_surface.get_rect())
             self.clock.tick(60)
 
             # Keep connection alive
