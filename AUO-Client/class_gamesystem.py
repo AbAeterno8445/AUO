@@ -135,7 +135,7 @@ class GameSystem(object):
             if self.spritelist.has(pl_obj):
                 self.spritelist.remove(pl_obj)
             try:
-                if self.map.map_data[pl_obj.y][pl_obj.x].light_visible:
+                if self.map.map_data[int(pl_obj.y)][int(pl_obj.x)].light_visible:
                     self.spritelist.add(pl_obj)
             except IndexError:
                 pass
@@ -178,7 +178,7 @@ class GameSystem(object):
             self.spritelist.draw(self.entity_surface)
             self.display.blit(self.entity_surface, self.camera_pos)
 
-            pygame.display.update(self.game_surface.get_rect())
+            pygame.display.update()
             self.clock.tick(60)
 
             # Keep connection alive
@@ -238,13 +238,13 @@ class GameSystem(object):
 
             elif server_data[0] == "remove_pl": # Remove player
                 try:
-                    tmp_player = self.spritelist[int(server_data[1])]
+                    tmp_player = self.playerlist[int(server_data[1])]
                 except NameError:
                     pass
                 else:
                     self.spritelist.remove(tmp_player)
-                    self.playerlist.remove(int(server_data[1]))
+                    self.playerlist.pop(int(server_data[1]), None)
 
             elif server_data[0] == "update_pl": # Update player position
                 try: self.playerlist[int(server_data[1])].set_pos(float(server_data[2]), float(server_data[3]))
-                except NameError: pass
+                except KeyError: pass
