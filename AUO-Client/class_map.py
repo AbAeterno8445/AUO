@@ -155,8 +155,9 @@ class GameMap(object):
         for tile in self.get_visible_tiles():
             dist = abs(tile.pos[0] - source_x) + abs(tile.pos[1] - source_y)
 
-            if dist <= tile.lightlevel:
-                tile.set_lightlevel(min(16, floor(tile.lightlevel + 16 - 16 * dist / strength)))
+            newlevel = min(16, floor(tile.lightlevel + 16 - 16 * dist / strength))
+            if newlevel > tile.lightlevel:
+                tile.set_lightlevel(newlevel)
 
     def lighting_update(self, player_x, player_y, player_light):
         vis_tiles = self.get_visible_tiles()
@@ -167,6 +168,7 @@ class GameMap(object):
         # Player light
         self.lighting_cast(player_x, player_y, player_light)
 
+        # Light emitting tiles
         for tile in vis_tiles:
             lightflag = tile.find_subflag("light")
             if lightflag:
