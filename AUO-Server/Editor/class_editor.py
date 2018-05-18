@@ -11,10 +11,13 @@ class Editor(object):
         self.mouse_held = []
 
         self.camera_pos = Vector2(320, 0)
+        self.camera_moved = Vector2(0, 0)
         self.display = None
         self.tiles_surface = None
         self.palette_surface = None
         self.settings_surface = None
+
+        self.update_mapdraw = True
 
         # Palette scrolling
         self.palette_pad_av = 0
@@ -65,6 +68,7 @@ class Editor(object):
             self.camera_pos.y = 0
 
             self.updatesize_tilesurface()
+            self.map_draw()
             return True
         else:
             print("Could not find map!")
@@ -82,10 +86,12 @@ class Editor(object):
     def map_new(self, name, xsize, ysize):
         self.map.newmap(name, xsize, ysize)
         self.updatesize_tilesurface()
+        self.map_draw()
 
     def map_resize(self, newsize_x, newsize_y):
         self.map.resize(newsize_x, newsize_y)
         self.updatesize_tilesurface()
+        self.map_draw()
 
     def map_changetile(self, tx, ty, newtile, flags, foreg=False):
         try:
@@ -99,11 +105,14 @@ class Editor(object):
                 flags_full.append(tmp_foreg_flag)
 
             for f in flags:
-                tmp_flag = f.split('/')
-                if len(tmp_flag) == 1:
-                    flags_full.append(tmp_flag[0])
+                if type(f) is not list:
+                    tmp_flag = f.split('/')
+                    if len(tmp_flag) == 1:
+                        flags_full.append(tmp_flag[0])
+                    else:
+                        flags_full.append(tmp_flag)
                 else:
-                    flags_full.append(tmp_flag)
+                    flags_full.append(f)
             changed_tile.flags = flags_full
 
             if not foreg:
@@ -111,6 +120,7 @@ class Editor(object):
             else:
                 changed_tile.set_foreg(newtile)
 
+            self.map_draw()
             return True
         except IndexError: pass
         return False
@@ -125,6 +135,32 @@ class Editor(object):
 
         self.input_data = {}
         return False
+
+    def map_draw(self):
+        # Draw maptiles to map surface
+        vis_tiles = pygame.sprite.LayeredDirty()
+        # Visibility range in X axis
+        vis_x_min = max(0, floor((self.palette_surface.get_width() - self.camera_pos.x) / 32))
+        vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
+        # Visibility range in Y axis
+        vis_y_min = max(0, floor((-self.camera_pos.y) / 32))
+        vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+
+        for i in range(vis_x_min, vis_x_max):
+            if i > self.map.width:
+                break
+            for j in range(vis_y_min, vis_y_max):
+                if j > self.map.height:
+                    break
+                try:
+                    tmp_maptile = self.map.map_data[j][i]
+                    vis_tiles.add(tmp_maptile)
+                    if tmp_maptile.foreg_tile:
+                        vis_tiles.add(tmp_maptile.foreg_tile)
+                except IndexError:
+                    pass
+
+        vis_tiles.draw(self.tiles_surface)
 
     def main_loop(self):
         # Tile selector rectangles
@@ -263,6 +299,14 @@ class Editor(object):
             elif self.keys_held[pygame.K_s]:  # down
                 mv_axis[1] = cam_spd
             self.camera_pos -= mv_axis
+            self.camera_moved += mv_axis
+
+            if abs(self.camera_moved.x) >= 32:
+                self.map_draw()
+                self.camera_moved.x = 0
+            if abs(self.camera_moved.y) >= 32:
+                self.map_draw()
+                self.camera_moved.y = 0
 
             # Left/Right mouse button held
             for i in range(2):
@@ -291,30 +335,10 @@ class Editor(object):
             self.display.fill((0, 0, 0))
 
             self.spr_list_palette.draw(self.palette_surface) # Draw tiles to palette surface
-            # Draw maptiles to map surface
-            vis_tiles = pygame.sprite.LayeredDirty()
-            # Visibility range in X axis
-            vis_x_min = max(0, floor((self.palette_surface.get_width() - self.camera_pos.x) / 32))
-            vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
-            # Visibility range in Y axis
-            vis_y_min = max(0, floor((-self.camera_pos.y) / 32))
-            vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
 
-            for i in range(vis_x_min, vis_x_max):
-                if i > self.map.width:
-                    break
-                for j in range(vis_y_min, vis_y_max):
-                    if j > self.map.height:
-                        break
-                    try:
-                        tmp_maptile = self.map.map_data[j][i]
-                        vis_tiles.add(tmp_maptile)
-                        if tmp_maptile.foreg_tile:
-                            vis_tiles.add(tmp_maptile.foreg_tile)
-                    except IndexError:
-                        pass
-
-            vis_tiles.draw(self.tiles_surface)
+            if self.update_mapdraw:
+                self.map_draw()
+                self.update_mapdraw = False
 
             # Draw map surface
             self.display.blit(self.tiles_surface, self.camera_pos)

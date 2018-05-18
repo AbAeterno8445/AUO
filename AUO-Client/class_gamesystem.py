@@ -54,7 +54,10 @@ class GameSystem(object):
 
     # Update tile surface size to map size
     def updatesize_tilesurface(self):
-        self.game_surface = pygame.transform.scale(self.game_surface, (self.map.width * 32, self.map.height * 32))
+        tmp_newsize = (self.map.width * 32, self.map.height * 32)
+        self.game_surface = pygame.transform.scale(self.game_surface, tmp_newsize)
+        self.entity_surface = pygame.transform.scale(self.game_surface, tmp_newsize).convert()
+        self.entity_surface.set_colorkey((255,0,255))
 
     def connect(self, host, port):
         print("Connected to " + host + " using port " + str(port) + ".")
