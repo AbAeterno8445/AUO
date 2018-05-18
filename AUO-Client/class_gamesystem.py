@@ -73,15 +73,20 @@ class GameSystem(object):
         self.player = Player(-1, (1,1), randint(0, 63) * 4)
         self.spritelist.add(self.player)
         self.conn.send("join|" + str(self.player.char))
-        self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
 
     def load_map(self, mapname):
         map_path = "data/maps/" + mapname
         map_tiles = self.map.load(map_path)
 
         self.updatesize_tilesurface()
+        self.update_drawlayers()
 
     def update_drawlayers(self):
+        # Update field of view
+        self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True)
+        # Update illumination
+        self.map.lighting_update(self.player.x, self.player.y, self.player.light)
+
         self.game_surface.fill((0,0,0))
         self.vis_tiles.empty()
         self.vis_walls.empty()
@@ -103,12 +108,12 @@ class GameSystem(object):
                 try:
                     tmp_maptile = self.map.map_data[j][i]
 
-                    if tmp_maptile.light_visible:
-                        tmp_maptile.toggle_grayscale(False)
-                        tmp_maptile.set_lightlevel(16)
-                    elif tmp_maptile.explored:
+                    if not tmp_maptile.light_visible and tmp_maptile.explored:
                         tmp_maptile.toggle_grayscale(True)
-                        tmp_maptile.set_lightlevel(8)
+                        tmp_maptile.set_lightlevel(3)
+                    else:
+                        tmp_maptile.toggle_grayscale(False)
+                        tmp_maptile.update_lightlevel()
 
                     if tmp_maptile.light_visible or tmp_maptile.explored:
                         if tmp_maptile.has_flag("wall"):
@@ -213,7 +218,6 @@ class GameSystem(object):
         # Update player's map visibility
         if self.player.moved:
             self.update_camera_plpos()
-            self.map.cast_light(self.player.x, self.player.y, 6, True)
             self.updatelayers = True
             self.player.moved = False
 

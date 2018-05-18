@@ -321,12 +321,18 @@ class Editor(object):
                         if self.keys_held[pygame.K_LCTRL]:
                             self.selected_tile[i] = self.map.map_data[mouse_tileposy][mouse_tileposx].tile_id
                             upd_rel_sect = True
-                        elif self.keys_held[pygame.K_LSHIFT]: # SHIFT key - Flag picker
-                            self.newtileflags = self.map.map_data[mouse_tileposy][mouse_tileposx].flags
+                        elif self.keys_held[pygame.K_LSHIFT]: # SHIFT key - Flag picker (excludes foreground flag)
+                            tmp_picked_flags = []
+                            for f in self.map.map_data[mouse_tileposy][mouse_tileposx].flags:
+                                if type(f) is list and f[0] == "fg":
+                                    continue
+                                tmp_picked_flags.append(f)
+
+                            self.newtileflags = tmp_picked_flags
                         else: # Place tile
                             if self.foreg_mode:
                                 if i == 0:
-                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], [], True)
+                                    self.map_changetile(mouse_tileposx, mouse_tileposy, self.selected_tile[i], self.newtileflags, True)
                                 else:
                                     self.map_changetile(mouse_tileposx, mouse_tileposy, -1, [], True)
                             else:

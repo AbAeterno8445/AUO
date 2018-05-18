@@ -8,6 +8,8 @@ class GameMap(object):
         self.width = 0
         self.height = 0
 
+        self.default_light = 0
+
         self.tile_texture = pygame.image.load("tileset.png")
         self.tile_texture.set_colorkey((255,0,255))
 
@@ -73,6 +75,9 @@ class GameMap(object):
                 # Save map size
                 mapfile.write(str(self.width) + "," + str(self.height) + "\n")
 
+                # Save map default light level
+                mapfile.write(str(self.default_light) + "\n")
+
                 # Save map tile data
                 for row in self.map_data:
                     for i, tile in enumerate(row):
@@ -100,6 +105,9 @@ class GameMap(object):
                 # Load map size
                 size = mapfile.readline().split(',')
                 self.width, self.height = [int(i) for i in size]
+
+                # Load map default light level
+                self.default_light = int(mapfile.readline().strip())
 
                 # Load map tile data
                 self.map_data = []

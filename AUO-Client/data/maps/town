@@ -1,5 +1,6 @@
 town
 25,25
+16
 0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,24:wall:bv:shadow,24:wall:bv:shadow,24:wall:bv:shadow,24:wall:bv:shadow,24:wall:bv:shadow,24:wall:bv:shadow,24:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow
 0:wall:bv:shadow,112,114:wall,112,114:wall,112,24:wall:bv:shadow,67,67,67,67,67,24:wall:bv:shadow,112,112,112,112,112,112,112,112,112,112,112,0:wall:bv:shadow
 0:wall:bv:shadow,114:wall,112,112,112,114:wall,24:wall:bv:shadow,67,67,67:fg/45:fg/45:xfer/dungeon/9/2,67,67,24:wall:bv:shadow,112,112,112,20:wall:bv:shadow,20:wall:bv:shadow,20:wall:bv:shadow,20:wall:bv:shadow,20:wall:bv:shadow,20:wall:bv:shadow,20:wall:bv:shadow,112,0:wall:bv:shadow

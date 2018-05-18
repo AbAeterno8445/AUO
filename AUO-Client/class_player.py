@@ -15,6 +15,9 @@ class Player(pygame.sprite.DirtySprite):
         self.speed = 0.4
         self.speed_cd = 0
 
+        self.sightrange = 6
+        self.light = 6
+
         self.ogchar = char
         self.char = self.ogchar
         self.char_anim = 0

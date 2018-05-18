@@ -1,7 +1,8 @@
 dungeon
 12,14
+3
 0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow
-0:wall:bv:shadow,67,67,67,67,67,67,67,67,67,67,0:wall:bv:shadow
+0:wall:bv:shadow,67:fg/109:wall:light/8,67,67,67,67,67,67,67,67,67,0:wall:bv:shadow
 0:wall:bv:shadow,67,67,67,67,67,67,67,67,67:fg/44:spawn:xfer/town/9/2,67,0:wall:bv:shadow
 0:wall:bv:shadow,67,67,67,67,67,67,67,67,67,67,0:wall:bv:shadow
 0:wall:bv:shadow,46:bv:shadow,0:wall:bv:shadow,2:wall:shadow,0:wall:bv:shadow,0:wall:bv:shadow,2:wall:shadow,0:wall:bv:shadow,0:wall:bv:shadow,2:wall:shadow,0:wall:bv:shadow,0:wall:bv:shadow
@@ -12,5 +13,5 @@ dungeon
 0:wall:bv:shadow,46:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,46:bv:shadow,0:wall:bv:shadow,46:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,46:bv:shadow,0:wall:bv:shadow
 0:wall:bv:shadow,67,67,67,67,67,67,67,67,67,67,0:wall:bv:shadow
 0:wall:bv:shadow,67,67,67,67,67,67,67,67,0:wall:bv:shadow,46:bv:shadow,0:wall:bv:shadow
-0:wall:bv:shadow,67,67,67,67,67,67,67,67,0:wall:bv:shadow,67:fg/236,0:wall:bv:shadow
+0:wall:bv:shadow,67:fg/109:wall:light/8,67,67,67,67,67,67,67:fg/109:wall:light/8,0:wall:bv:shadow,67:fg/236,0:wall:bv:shadow
 0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow,0:wall:bv:shadow

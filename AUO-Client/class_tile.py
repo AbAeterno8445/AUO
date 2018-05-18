@@ -56,14 +56,21 @@ class Tile(pygame.sprite.DirtySprite):
             tmp_texture = self.texture_gs
         self.image = tmp_texture.subsurface(((self.tile_id % 16) * 32 + (self.tile_id % 16) * 2, floor(self.tile_id / 16) * 32 + floor(self.tile_id / 16) * 2, 32, 32))
 
-    def set_lightlevel(self, newlevel):
-        if self.foreg_tile:
-            self.foreg_tile.set_lightlevel(newlevel)
+    def set_lightlevel(self, newlevel=None):
+        # No new light level - set to default
+        if not newlevel:
+            if self.has_flag("indoor"):
+                newlevel = 3
+            else:
+                newlevel = 16 # Change to sun/moon light level at some point (when daytime is implemented)
+
         self.lightlevel = newlevel
         self.update_lightlevel()
 
     def update_lightlevel(self):
         self.image.set_alpha(max(0, min(255, self.lightlevel * 16)))
+        if self.foreg_tile:
+            self.foreg_tile.set_lightlevel(self.lightlevel)
 
     # Set foreground tile. -1 removes current foreground
     def set_foreg(self, foreg_tile):

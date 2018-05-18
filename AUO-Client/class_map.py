@@ -1,5 +1,6 @@
 from class_tile import Tile
 import pygame
+from math import floor
 
 class GameMap(object):
     def __init__(self):
@@ -8,6 +9,8 @@ class GameMap(object):
         self.height = 0
 
         self.spawnpos = (1, 1)
+
+        self.default_light = 16
 
         self.tile_texture = pygame.image.load("assets/tileset.png")
         self.tile_texture.set_colorkey((255,0,255))
@@ -31,6 +34,15 @@ class GameMap(object):
         except:
             return False
 
+    def get_visible_tiles(self):
+        tmp_tilelist = []
+        for row in self.map_data:
+            for tile in row:
+                if tile.light_visible:
+                    tmp_tilelist.append(tile)
+
+        return tmp_tilelist
+
     # Loads a map given a map file, returns list of tiles loaded
     def load(self, map_path):
         self.loaded = False
@@ -42,6 +54,9 @@ class GameMap(object):
                 # Load map size
                 size = mapfile.readline().split(',')
                 self.width, self.height = [int(i) for i in size]
+
+                # Load map default light level
+                self.default_light = int(mapfile.readline().strip())
 
                 # Load map tile data
                 self.map_data = []
@@ -117,7 +132,7 @@ class GameMap(object):
                         self.do_fov(x, y, radius, i + 1, start_slope, l_slope, xx, xy, yx, yy)
             if blocked: break
 
-    def cast_light(self, x, y, radius, player=False):
+    def cast_fov(self, x, y, radius, player=False):
         multipliers = [
             [1, 0, 0, -1, -1, 0, 0, 1],
             [0, 1, -1, 0, 0, -1, 1, 0],
@@ -134,3 +149,25 @@ class GameMap(object):
 
         for i in range(8):
             self.do_fov(x, y, radius, 1, 1.0, 0.0, multipliers[0][i], multipliers[1][i], multipliers[2][i], multipliers[3][i])
+
+    # Casts a light at a position
+    def lighting_cast(self, source_x, source_y, strength):
+        for tile in self.get_visible_tiles():
+            dist = abs(tile.pos[0] - source_x) + abs(tile.pos[1] - source_y)
+
+            if dist <= tile.lightlevel:
+                tile.set_lightlevel(min(16, floor(tile.lightlevel + 16 - 16 * dist / strength)))
+
+    def lighting_update(self, player_x, player_y, player_light):
+        vis_tiles = self.get_visible_tiles()
+        # Reset tile lighting
+        for tile in vis_tiles:
+            tile.set_lightlevel(self.default_light)
+
+        # Player light
+        self.lighting_cast(player_x, player_y, player_light)
+
+        for tile in vis_tiles:
+            lightflag = tile.find_subflag("light")
+            if lightflag:
+                self.lighting_cast(tile.pos[0], tile.pos[1], int(lightflag[1]))
