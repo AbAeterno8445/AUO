@@ -29,8 +29,20 @@ class Tile(pygame.sprite.DirtySprite):
         self.light_visible = False
         self.explored = False
         self.lightlevel = 0
+        self.light_overlay = None
 
         self.wallshadow = None
+
+    # Illumination overlay
+    def get_light_overlay(self):
+        if not self.light_overlay:
+            self.light_overlay = pygame.sprite.DirtySprite()
+            self.light_overlay.image = pygame.Surface((32, 32), flags=pygame.SRCALPHA)
+
+        self.light_overlay.rect = self.rect
+        self.light_overlay.image.fill((0, 0, 0, 255 - max(0, min(255, self.lightlevel * 16))))
+
+        return self.light_overlay
 
     # For animated tiles
     def anim(self, anim_state):
@@ -80,9 +92,9 @@ class Tile(pygame.sprite.DirtySprite):
         self.update_lightlevel()
 
     def update_lightlevel(self):
-        self.image.set_alpha(max(0, min(255, self.lightlevel * 16)))
+        #self.image.set_alpha(max(0, min(255, self.lightlevel * 16)))
         if self.foreg_tile:
-            self.foreg_tile.set_lightlevel(self.lightlevel)
+            self.foreg_tile.set_lightlevel(min(16,floor(self.lightlevel * 1.5)))
 
     # Set foreground tile. -1 removes current foreground
     def set_foreg(self, foreg_tile):

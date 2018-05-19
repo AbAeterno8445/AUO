@@ -129,6 +129,11 @@ class GameSystem(object):
                             self.vis_tiles.add(tmp_foreg)
                             self.vis_tiles.change_layer(tmp_foreg, 3)
 
+                    # Illumination overlay
+                    light_overlay = tmp_maptile.get_light_overlay()
+                    self.vis_tiles.add(light_overlay)
+                    self.vis_tiles.change_layer(light_overlay, 4)
+
                 except IndexError:
                     pass
 
