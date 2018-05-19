@@ -25,9 +25,7 @@ class GameSystem(object):
 
         # Map drawing layers
         self.updatelayers = False
-        self.vis_tiles = pygame.sprite.LayeredDirty()  # Ground tile layer
-        self.vis_walls = pygame.sprite.LayeredDirty()  # Wall tile layer
-        self.vis_foreg = pygame.sprite.LayeredDirty()  # Foreground tile layer
+        self.vis_tiles = pygame.sprite.LayeredDirty()
         self.spritelist = pygame.sprite.LayeredDirty()
 
     def init_display(self, disp_w, disp_h):
@@ -89,8 +87,6 @@ class GameSystem(object):
 
         self.game_surface.fill((0,0,0))
         self.vis_tiles.empty()
-        self.vis_walls.empty()
-        self.vis_foreg.empty()
         # Visibility range in X axis
         vis_x_min = max(0, floor(-self.camera_pos.x / 32))
         vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
@@ -117,25 +113,24 @@ class GameSystem(object):
 
                     if tmp_maptile.light_visible or tmp_maptile.explored:
                         if tmp_maptile.has_flag("wall"):
-                            walls_list.append(tmp_maptile)
+                            self.vis_tiles.add(tmp_maptile)
+                            self.vis_tiles.change_layer(tmp_maptile, 2)
                         else:
                             self.vis_tiles.add(tmp_maptile)
+                            self.vis_tiles.change_layer(tmp_maptile, 0)
 
                         if tmp_maptile.has_flag("shadow"):  # Emit shadow
-                            self.vis_walls.add(tmp_maptile.get_wallshadow())
+                            tmp_wallshadow = tmp_maptile.get_wallshadow()
+                            self.vis_tiles.add(tmp_wallshadow)
+                            self.vis_tiles.change_layer(tmp_wallshadow, 1)
 
                         if tmp_maptile.foreg_tile:  # Foreground tile
-                            self.vis_foreg.add(tmp_maptile.foreg_tile)
+                            tmp_foreg = tmp_maptile.foreg_tile
+                            self.vis_tiles.add(tmp_foreg)
+                            self.vis_tiles.change_layer(tmp_foreg, 3)
 
                 except IndexError:
                     pass
-
-        for w in walls_list:
-            self.vis_walls.add(w)
-
-        self.vis_tiles.draw(self.game_surface)
-        self.vis_walls.draw(self.game_surface)
-        self.vis_foreg.draw(self.game_surface)
 
     # Draws players over visible tiles
     def update_drawplayers(self):
@@ -149,7 +144,8 @@ class GameSystem(object):
                 pass
 
     def main_loop(self):
-        ping_ticker = 300
+        ping_ticker = 300 # Ping (keeps connection alive)
+        anim_ticker = 30 # Tile animations
 
         done = False
         while not done:
@@ -175,9 +171,18 @@ class GameSystem(object):
             self.display.fill((0,0,0))
             self.entity_surface.fill((255,0,255))
 
+            # Tile animations
+            if anim_ticker > 0:
+                anim_ticker -= 1
+            else:
+                self.map.anim_tiles()
+                anim_ticker = 30
+
             if self.updatelayers:
                 self.update_drawlayers()
                 self.updatelayers = False
+
+            self.vis_tiles.draw(self.game_surface)
 
             # Draw game surface (tiles)
             self.display.blit(self.game_surface, self.camera_pos)

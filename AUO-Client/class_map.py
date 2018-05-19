@@ -11,6 +11,8 @@ class GameMap(object):
         self.spawnpos = (1, 1)
 
         self.default_light = 16
+        self.animated_tiles = []
+        self.anim_state = 0
 
         self.tile_texture = pygame.image.load("assets/tileset.png")
         self.tile_texture.set_colorkey((255,0,255))
@@ -34,15 +36,6 @@ class GameMap(object):
         except:
             return False
 
-    def get_visible_tiles(self):
-        tmp_tilelist = []
-        for row in self.map_data:
-            for tile in row:
-                if tile.light_visible:
-                    tmp_tilelist.append(tile)
-
-        return tmp_tilelist
-
     # Loads a map given a map file, returns list of tiles loaded
     def load(self, map_path):
         self.loaded = False
@@ -60,6 +53,7 @@ class GameMap(object):
 
                 # Load map tile data
                 self.map_data = []
+                self.animated_tiles = []
                 for y in range(self.height):
                     row = mapfile.readline().strip().split(',')
                     self.map_data.append([])
@@ -78,6 +72,10 @@ class GameMap(object):
                         if newtile.has_flag("spawn"):
                             self.spawnpos = (x, y)
 
+                        # Animated tile
+                        if newtile.tile_id >= 84 and newtile.tile_id <= 95:
+                            self.animated_tiles.append(newtile)
+
                         self.map_data[y].append(newtile)
             self.loaded = True
 
@@ -86,6 +84,21 @@ class GameMap(object):
             return False
 
         return self.map_data
+
+    def get_visible_tiles(self):
+        tmp_tilelist = []
+        for row in self.map_data:
+            for tile in row:
+                if tile.light_visible:
+                    tmp_tilelist.append(tile)
+
+        return tmp_tilelist
+
+    def anim_tiles(self):
+        self.anim_state = (self.anim_state + 1) % 4
+        for tile in self.animated_tiles:
+            if tile.light_visible:
+                tile.anim(self.anim_state)
 
     def do_fov(self, x, y, radius, row, start_slope, end_slope, xx, xy, yx, yy):
         if start_slope < end_slope: return

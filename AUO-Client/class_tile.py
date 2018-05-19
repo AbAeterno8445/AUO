@@ -32,6 +32,17 @@ class Tile(pygame.sprite.DirtySprite):
 
         self.wallshadow = None
 
+    # For animated tiles
+    def anim(self, anim_state):
+        if self.tile_id >= 84 and self.tile_id <= 87: # Water
+            self.set_tile(84 + anim_state, self.grayscaled)
+
+        if self.tile_id >= 88 and self.tile_id <= 91: # Deep water
+            self.set_tile(88 + anim_state, self.grayscaled)
+
+        if self.tile_id >= 92 and self.tile_id <= 95: # Lava
+            self.set_tile(92 + anim_state, self.grayscaled)
+
     def get_wallshadow(self):
         if self.wallshadow is None:
             self.wallshadow = pygame.sprite.DirtySprite()
@@ -55,6 +66,7 @@ class Tile(pygame.sprite.DirtySprite):
         if grayscale:
             tmp_texture = self.texture_gs
         self.image = tmp_texture.subsurface(((self.tile_id % 16) * 32 + (self.tile_id % 16) * 2, floor(self.tile_id / 16) * 32 + floor(self.tile_id / 16) * 2, 32, 32))
+        self.dirty = 1
 
     def set_lightlevel(self, newlevel=None):
         # No new light level - set to default
