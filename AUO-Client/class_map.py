@@ -176,7 +176,7 @@ class GameMap(object):
         vis_tiles = self.get_visible_tiles()
         # Reset tile lighting
         for tile in vis_tiles:
-            tile.set_lightlevel(self.default_light)
+            tile.set_lightlevel(self.default_light, True)
 
         # Player light
         self.lighting_cast(player_x, player_y, player_light)

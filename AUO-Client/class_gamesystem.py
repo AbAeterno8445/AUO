@@ -1,11 +1,10 @@
-from class_player import *
+from class_entity import *
 from class_map import GameMap
 from patcher import *
 from Mastermind import *
 from math import *
 from pygame.math import Vector2
-import pygame
-import os.path
+import pygame, os.path
 
 class GameSystem(object):
     def __init__(self):
@@ -68,7 +67,7 @@ class GameSystem(object):
         self.create_player()
 
     def create_player(self):
-        self.player = Player(-1, (1,1), randint(0, 63) * 4)
+        self.player = Entity(-1, (1,1), (randint(0, 63) * 4, 4))
         self.spritelist.add(self.player)
         self.conn.send("join|" + str(self.player.char))
 
@@ -249,7 +248,7 @@ class GameSystem(object):
                 self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
 
             elif server_data[0] == "new_pl": # Create new player
-                newplayer = Player(int(server_data[1]), self.map.spawnpos, int(server_data[2]))
+                newplayer = Entity(int(server_data[1]), self.map.spawnpos, (int(server_data[2]), 4))
                 self.playerlist[int(server_data[1])] = newplayer
                 self.spritelist.add(newplayer)
 
@@ -264,4 +263,15 @@ class GameSystem(object):
 
             elif server_data[0] == "update_pl": # Update player position
                 try: self.playerlist[int(server_data[1])].set_pos(float(server_data[2]), float(server_data[3]))
+                except KeyError: pass
+
+            elif server_data[0] == "setstat_pl": # Update player stat
+                try:
+                    value = server_data[3]
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        pass
+
+                    setattr(self.playerlist[int(server_data[1])], server_data[2], value)
                 except KeyError: pass
