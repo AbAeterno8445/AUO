@@ -24,3 +24,9 @@ class GameMap(object):
                 # Remove other players for leaving player
                 self.server.callback_client_send(client.conn, "remove_pl|" + str(cl.id))
         self.client_list.remove(client)
+
+    def send_all(self, data, exc=None):
+        for cl in self.client_list:
+            if cl == exc:
+                continue
+            self.server.callback_client_send(cl.conn, data)

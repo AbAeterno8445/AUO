@@ -9,13 +9,11 @@ from screen_game import Screen_Game
 
 from types import MethodType
 from Mastermind import *
-from math import *
-from pygame.math import Vector2
-import pygame, os.path
+import pygame
 
 class GameSystem(object):
     def __init__(self):
-        self.conn = MastermindClientUDP(10.0)
+        self.conn = MastermindClientUDP(10.0, 10.0)
         self.conn_ip = ""
         self.conn_port = ""
         self.player = Entity(-1, (1,1), 256)

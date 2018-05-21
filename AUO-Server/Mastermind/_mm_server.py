@@ -177,16 +177,19 @@ class MastermindServerUDP(MastermindServerBase):
             input_ready,output_ready,except_ready = select.select([self._mm_server_socket],[],[],self._mm_time_server_refresh)
             if input_ready == []: continue
 
-            data,address = netutil.packet_recv_udp(self._mm_server_socket,self._mm_max_packet_size)
-            if address not in self._mm_connections:
-                connection = MastermindConnectionThreadUDP(self, address)
-                connection.thread = threading.Thread(target=connection.run_forever)
-                connection.thread.start()
-                while not connection.handling: pass
-                self._mm_connections[address] = connection
+            try:
+                data,address = netutil.packet_recv_udp(self._mm_server_socket,self._mm_max_packet_size)
+                if address not in self._mm_connections:
+                    connection = MastermindConnectionThreadUDP(self, address)
+                    connection.thread = threading.Thread(target=connection.run_forever)
+                    connection.thread.start()
+                    while not connection.handling: pass
+                    self._mm_connections[address] = connection
 
-            self.callback_client_receive(self._mm_connections[address])
-            self._mm_connections[address].handle(data)
+                self.callback_client_receive(self._mm_connections[address])
+                self._mm_connections[address].handle(data)
+            except ConnectionResetError:
+                pass
 
 class MastermindConnectionThread(object):
     def __init__(self, server, socket,address):

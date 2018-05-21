@@ -45,6 +45,12 @@ class Entity(pygame.sprite.DirtySprite):
 
         self.moved = False
 
+    def set_stat(self, stat, value):
+        if stat == "char":
+            self.set_char(value)
+        else:
+            setattr(self, stat, value)
+
     def get_char_texture(self):
         return floor(self.char / 256)
 

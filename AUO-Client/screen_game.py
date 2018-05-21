@@ -82,8 +82,11 @@ class Screen_Game(Screen):
 
                 login_attempt = self.conn.receive(True)
                 print("Connected. Authenticating...")
-                if login_attempt == "login_fail":
-                    print("Authentication failed. Wrong credentials!")
+                if login_attempt == "login_noacc" or login_attempt == "login_logged":
+                    if login_attempt == "login_noacc":
+                        print("Authentication failed. Wrong credentials!")
+                    else:
+                        print("Authentication failed. That account is already logged in!")
                     self.conn.send("disconnect")
                     self.conn.disconnect()
                     return False
@@ -200,7 +203,7 @@ class Screen_Game(Screen):
                     # Illumination overlay
                     light_overlay = tmp_maptile.get_light_overlay()
                     self.vis_tiles.add(light_overlay)
-                    self.vis_tiles.change_layer(light_overlay, 4)
+                    self.vis_tiles.change_layer(light_overlay, 5)
 
                 except IndexError:
                     pass
@@ -208,12 +211,14 @@ class Screen_Game(Screen):
     # Draws players over visible tiles
     def update_drawplayers(self):
         for pl_id, pl_obj in self.playerlist.items():
-            if self.spritelist.has(pl_obj):
-                self.spritelist.remove(pl_obj)
             try:
                 if self.map.map_data[int(pl_obj.y)][int(pl_obj.x)].light_visible:
-                    self.spritelist.add(pl_obj)
-                    self.spritelist.change_layer(pl_obj, 0)
+                    pl_obj.update()
+                    if not self.vis_tiles.has(pl_obj):
+                        self.vis_tiles.add(pl_obj)
+                        self.vis_tiles.change_layer(pl_obj, 4)
+                elif self.vis_tiles.has(pl_obj):
+                    self.vis_tiles.remove(pl_obj)
             except IndexError:
                 pass
 
@@ -256,13 +261,14 @@ class Screen_Game(Screen):
             self.update_drawlayers()
             self.updatelayers = False
 
+        self.update_drawplayers()
         self.vis_tiles.draw(self.game_surface)
 
         if self.map.loaded:
             # Draw game surface (tiles)
             self.display.blit(self.game_surface, self.camera_pos)
             # Draw sprites
-            self.update_drawplayers()
+            #self.update_drawplayers()
             self.spritelist.update()
             self.spritelist.draw(self.entity_surface)
             self.display.blit(self.entity_surface, self.camera_pos)
@@ -318,9 +324,8 @@ class Screen_Game(Screen):
                 self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
 
             elif server_data[0] == "new_pl": # Create new player
-                newplayer = Entity(int(server_data[1]), self.map.spawnpos, (int(server_data[2]), 4))
+                newplayer = Entity(int(server_data[1]), self.map.spawnpos, int(server_data[2]))
                 self.playerlist[int(server_data[1])] = newplayer
-                self.spritelist.add(newplayer)
 
             elif server_data[0] == "remove_pl": # Remove player
                 try:
@@ -328,7 +333,11 @@ class Screen_Game(Screen):
                 except NameError:
                     pass
                 else:
-                    self.spritelist.remove(tmp_player)
+                    if self.vis_tiles.has(tmp_player):
+                        self.vis_tiles.remove(tmp_player)
+                        # Update tile below removed player, avoids black box issue on player disconnect
+                        try: self.map.map_data[int(tmp_player.y)][int(tmp_player.x)].dirty = 1
+                        except IndexError: pass
                     self.playerlist.pop(int(server_data[1]), None)
 
             elif server_data[0] == "update_pl": # Update player position
@@ -343,8 +352,9 @@ class Screen_Game(Screen):
                     except ValueError:
                         pass
 
-                    if not int(server_data[1]) == -1:
-                        setattr(self.playerlist[int(server_data[1])], server_data[2], value)
+                    pl_id = int(server_data[1])
+                    if pl_id == -1:
+                        self.player.set_stat(server_data[2], value)
                     else:
-                        setattr(self.player, server_data[2], value)
+                        self.playerlist[pl_id].set_stat(server_data[2], value)
                 except KeyError: pass

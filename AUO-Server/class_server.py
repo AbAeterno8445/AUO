@@ -112,11 +112,20 @@ class Server(MastermindServerUDP):
             cl_acc_pw = data[2]
 
             if self.account_exists(cl_acc_name, cl_acc_pw):
-                inc_client.acc_name = cl_acc_name
-                inc_client.acc_pw = cl_acc_pw
-                self.callback_client_send(conn, "login_ok")
+                logged = False
+                for cl in self.client_list:
+                    if self.client_list[cl].acc_name == cl_acc_name:
+                        logged = True
+                        break
+
+                if logged:
+                    self.callback_client_send(conn, "login_logged")
+                else:
+                    inc_client.acc_name = cl_acc_name
+                    inc_client.acc_pw = cl_acc_pw
+                    self.callback_client_send(conn, "login_ok")
             else:
-                self.callback_client_send(conn, "login_fail")
+                self.callback_client_send(conn, "login_noacc")
 
         elif data[0] == "newchar": # New player character
             if data[1] not in os.listdir("players"):
@@ -148,6 +157,8 @@ class Server(MastermindServerUDP):
             self.callback_client_send(conn, "loadmap|town|spawn")
             inc_client.current_map.player_enter(inc_client)
 
+            self.client_update_stat(inc_client, "char")
+
         elif data[0] == "disconnect": # Player disconnection
             self.callback_disconnect_client(conn)
 
@@ -167,3 +178,16 @@ class Server(MastermindServerUDP):
             self.callback_client_send(conn, "pong")
 
         return super(MastermindServerUDP, self).callback_client_handle(conn, data)
+
+    # Changes a stat server-side then updates
+    def client_set_stat(self, client, stat, value, update):
+        setattr(client, stat, value)
+        if update:
+            self.update_stat(client, stat, value)
+
+    # Updates all other clients with new stat for this client
+    def client_update_stat(self, client, stat):
+        value = getattr(client, stat, 0)
+        self.callback_client_send(client.conn, "setstat_pl|-1|" + stat + "|" + str(value))
+        if client.current_map:
+            client.current_map.send_all("setstat_pl|" + str(client.id) + "|" + stat + "|" + str(value), client)
