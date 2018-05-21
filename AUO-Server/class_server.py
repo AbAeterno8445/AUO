@@ -1,4 +1,4 @@
-import select, socket, sys, traceback, os
+import select, socket, sys, traceback, os, base64
 from class_client import Client
 from class_map import GameMap
 from random import randint
@@ -41,11 +41,28 @@ class Server(MastermindServerUDP):
             disc_client = self.client_list[conn]
 
             print("Lost connection to client " + str(disc_client.id))
-            disc_client.current_map.player_leave(disc_client)
+            if disc_client.current_map:
+                disc_client.current_map.player_leave(disc_client)
             self.id_table.remove(disc_client.id)
             self.client_list.pop(conn, None)
 
         return super(MastermindServerUDP, self).callback_disconnect_client(conn)
+
+    def account_exists(self, name, pw=None):
+        with open("data/accounts", "r") as acc_file:
+            for line in acc_file:
+                line = line.strip().split(':')
+                if (line[0] == name and line[1] == pw) or (line[0] == name and not pw):
+                    return True
+        return False
+
+    def character_in_account(self, acc_name, char_name):
+        with open("data/account-chars", "r") as acc_file:
+            for line in acc_file:
+                line = line.strip().split(':')
+                if line[0] == acc_name and line[1] == char_name:
+                    return True
+        return False
 
     # Process incoming client messages
     def callback_client_handle(self, conn, data):
@@ -79,11 +96,53 @@ class Server(MastermindServerUDP):
         elif data[0] == "filedl_uptodate": # File is updated, keep iterating
             inc_client.filedl_list.remove(data[1])
 
-        elif data[0] == "join": # New player joins
+        elif data[0] == "acc_create": # Client account creation
+            cl_acc_name = data[1]
+            cl_acc_pw = data[2]
+
+            if self.account_exists(cl_acc_name):
+                self.callback_client_send(conn, "acc_create_fail")
+            else:
+                with open("data/accounts", "a") as acc_file:
+                    acc_file.write(cl_acc_name + ":" + cl_acc_pw + "\n")
+                self.callback_client_send(conn, "acc_create_ok")
+
+        elif data[0] == "login": # Client account login
+            cl_acc_name = data[1]
+            cl_acc_pw = data[2]
+
+            if self.account_exists(cl_acc_name, cl_acc_pw):
+                inc_client.acc_name = cl_acc_name
+                inc_client.acc_pw = cl_acc_pw
+                self.callback_client_send(conn, "login_ok")
+            else:
+                self.callback_client_send(conn, "login_fail")
+
+        elif data[0] == "newchar": # New player character
+            if data[1] not in os.listdir("players"):
+                inc_client.name = data[1]
+                inc_client.char = data[2]
+                inc_client.save_to_file()
+
+                with open("data/account-chars", "a") as acc_file:
+                    acc_file.write(inc_client.acc_name + ":" + inc_client.name + "\n")
+
+                self.callback_client_send(conn, "newchar_ok")
+            else:
+                self.callback_client_send(conn, "newchar_fail")
+
+        elif data[0] == "continuechar": # Continues with existing character
+            if self.character_in_account(inc_client.acc_name, data[1]):
+                inc_client.name = data[1]
+                inc_client.load_from_file()
+
+                self.callback_client_send(conn, "continuechar_ok")
+            else:
+                self.callback_client_send(conn, "continuechar_fail")
+
+        elif data[0] == "join": # Player joins
             # Assign id to joining player
             self.callback_client_send(conn, "assign_id|" + str(inc_client.id))
-
-            inc_client.char = int(data[1])
 
             inc_client.current_map = self.map_list["town"]
             self.callback_client_send(conn, "loadmap|town|spawn")

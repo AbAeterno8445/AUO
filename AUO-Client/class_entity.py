@@ -23,11 +23,15 @@ class Entity(pygame.sprite.DirtySprite):
         self.name = ""
         self.x = pos[0]
         self.y = pos[1]
-        self.maxhp = 100
-        self.hp = 100
-        self.atk = 1
-        self.atkspd = 0.5
+        self.maxhp = 0
+        self.hp = 0
+        self.atk = 0
+        self.atkspd = 0
         self.speed = 0.4
+
+        self.xp = 0
+        self.xp_req = 100
+        self.level = 1
 
         self.tickers = {}
         self.tickers["move"] = 0
@@ -37,14 +41,21 @@ class Entity(pygame.sprite.DirtySprite):
         self.sightrange = 6
         self.light = 3
 
-        self.ogchar = char
-        self.char = self.ogchar[0]
+        self.set_char(char)
 
         self.moved = False
 
-        self.ogimage = Entity.ent_textures[2]
-        self.ogimage.set_colorkey((255,0,255))
-        self.image = self.ogimage.subsurface(((self.char % 16) * 32 + (self.char % 16)*2, floor(self.char / 16) * 32 + floor(self.char / 16)*2, 32, 32))
+    def get_char_texture(self):
+        return floor(self.char / 256)
+
+    def set_char(self, char):
+        self.char = char
+        self.char_frames = 4  # Add check for 2-frame characters in the future
+
+        self.ogimage = Entity.ent_textures[self.get_char_texture()]
+        self.ogimage.set_colorkey((255, 0, 255))
+        char_tile = self.char % 256
+        self.image = self.ogimage.subsurface(((char_tile % 16) * 32 + (char_tile % 16) * 2, floor(char_tile / 16) * 32 + floor(char_tile / 16) * 2, 32, 32))
         self.rect = self.image.get_rect()
 
     def move_axis(self, axes, map):
@@ -75,7 +86,7 @@ class Entity(pygame.sprite.DirtySprite):
 
         # Character animation
         if self.tickers["char_anim"] == 0:
-            self.char = self.ogchar[0] + randint(0, self.ogchar[1] - 1)
-            self.image = self.ogimage.subsurface(((self.char % 16) * 32 + (self.char % 16) * 2,
-                                                  floor(self.char / 16) * 32 + floor(self.char / 16) * 2, 32, 32))
+            char_rand = self.char % 256 + randint(0, self.char_frames - 1)
+            self.image = self.ogimage.subsurface(((char_rand % 16) * 32 + (char_rand % 16) * 2,
+                                                  floor(char_rand / 16) * 32 + floor(char_rand / 16) * 2, 32, 32))
             self.tickers["char_anim"] = 20

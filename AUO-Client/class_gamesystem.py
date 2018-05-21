@@ -1,6 +1,13 @@
 from class_entity import *
-from class_map import GameMap
-from patcher import *
+
+from screen_menu_main import Screen_Menu_Main
+from screen_menu_continuechar import Screen_Menu_Continuechar
+from screen_menu_newchar import Screen_Menu_Newchar
+from screen_menu_newacc import Screen_Menu_Newacc
+from screen_menu_connect import Screen_Menu_Connect
+from screen_game import Screen_Game
+
+from types import MethodType
 from Mastermind import *
 from math import *
 from pygame.math import Vector2
@@ -9,269 +16,139 @@ import pygame, os.path
 class GameSystem(object):
     def __init__(self):
         self.conn = MastermindClientUDP(10.0)
-        self.patcher = Patcher(self.conn)
-        self.map = GameMap()
+        self.conn_ip = ""
+        self.conn_port = ""
+        self.player = Entity(-1, (1,1), 256)
+
+        self.title_font = pygame.font.Font("assets/fonts/Dimitriswank.TTF", 96)
+        self.title_col = [255, 255, 255]
+        self.title_mode = randint(0, 2)
+
+        self.screens = {
+            "menu_main": Screen_Menu_Main(),
+            "menu_continuechar": Screen_Menu_Continuechar(),
+            "menu_newchar": Screen_Menu_Newchar(),
+            "menu_newacc": Screen_Menu_Newacc(),
+            "menu_connect": Screen_Menu_Connect(),
+            "game": Screen_Game()
+        }
+        self.screen_transitions = Screen_Transitions()
+        self.current_screen = "menu_main"
 
         self.display = None
-        self.game_surface = None
-        self.entity_surface = None
-        self.camera_pos = Vector2(0, 0)
         self.clock = pygame.time.Clock()
-
-        self.keys_held = []
-
-        self.playerlist = {}
-
-        # Map drawing layers
-        self.updatelayers = False
-        self.vis_tiles = pygame.sprite.LayeredDirty()
-        self.spritelist = pygame.sprite.LayeredDirty()
 
     def init_display(self, disp_w, disp_h):
         self.display = pygame.display.set_mode((disp_w, disp_h))
-        self.disp_size = (disp_w, disp_h)
-        self.game_surface = pygame.Surface((disp_w, disp_h))
-        self.entity_surface = pygame.Surface(self.game_surface.get_size()).convert()
-        self.entity_surface.set_colorkey((255,0,255))
         pygame.display.set_icon(pygame.image.load("assets/AUOicon.png"))
         pygame.display.set_caption("AUO Client")
 
-    # Update camera to player position
-    def update_camera_plpos(self):
-        # Camera X axis
-        if self.player.x * 32 > self.display.get_width() / 2:
-            self.camera_pos.x = -self.player.x * 32 + self.display.get_width() / 2
-        else:
-            self.camera_pos.x = 0
-        # Camera Y axis
-        if self.player.y * 32 > self.display.get_height() / 2:
-            self.camera_pos.y = -self.player.y * 32 + self.display.get_height() / 2
-        else:
-            self.camera_pos.y = 0
-
-    # Update tile surface size to map size
-    def updatesize_tilesurface(self):
-        tmp_newsize = (self.map.width * 32, self.map.height * 32)
-        self.game_surface = pygame.transform.scale(self.game_surface, tmp_newsize)
-        self.entity_surface = pygame.transform.scale(self.game_surface, tmp_newsize).convert()
-        self.entity_surface.set_colorkey((255,0,255))
-
-    def connect(self, host, port):
-        print("Connected to " + host + " using port " + str(port) + ".")
-        self.conn.connect(host, port)
-
-        print("Running patcher...")
-        self.patcher.check_uptodate()
-        print("Patching process done.")
-
-        self.create_player()
-
-    def create_player(self):
-        self.player = Entity(-1, (1,1), (randint(0, 63) * 4, 4))
-        self.spritelist.add(self.player)
-        self.conn.send("join|" + str(self.player.char))
-
-    def load_map(self, mapname):
-        map_path = "data/maps/" + mapname
-        map_tiles = self.map.load(map_path)
-
-        self.updatesize_tilesurface()
-        self.update_drawlayers()
-
-    def update_drawlayers(self):
-        # Update field of view
-        self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True)
-        # Update illumination
-        self.map.lighting_update(self.player.x, self.player.y, self.player.light)
-
-        self.game_surface.fill((0,0,0))
-        self.vis_tiles.empty()
-        # Visibility range in X axis
-        vis_x_min = max(0, floor(-self.camera_pos.x / 32))
-        vis_x_max = max(0, ceil((self.display.get_width() - self.camera_pos.x) / 32))
-        # Visibility range in Y axis
-        vis_y_min = max(0, floor(-self.camera_pos.y / 32))
-        vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
-        # Rendering walls and shadows in order
-        walls_list = []
-        for i in range(vis_x_min, vis_x_max):
-            if i > self.map.width:
-                break
-            for j in range(vis_y_min, vis_y_max):
-                if j > self.map.height:
-                    break
-                try:
-                    tmp_maptile = self.map.map_data[j][i]
-
-                    if not tmp_maptile.light_visible and tmp_maptile.explored:
-                        tmp_maptile.toggle_grayscale(True)
-                        tmp_maptile.set_lightlevel(3)
-                    else:
-                        tmp_maptile.toggle_grayscale(False)
-                        tmp_maptile.update_lightlevel()
-
-                    if tmp_maptile.light_visible or tmp_maptile.explored:
-                        if tmp_maptile.has_flag("wall"):
-                            self.vis_tiles.add(tmp_maptile)
-                            self.vis_tiles.change_layer(tmp_maptile, 2)
-                        else:
-                            self.vis_tiles.add(tmp_maptile)
-                            self.vis_tiles.change_layer(tmp_maptile, 0)
-
-                        if tmp_maptile.has_flag("shadow"):  # Emit shadow
-                            tmp_wallshadow = tmp_maptile.get_wallshadow()
-                            self.vis_tiles.add(tmp_wallshadow)
-                            self.vis_tiles.change_layer(tmp_wallshadow, 1)
-
-                        if tmp_maptile.foreg_tile:  # Foreground tile
-                            tmp_foreg = tmp_maptile.foreg_tile
-                            self.vis_tiles.add(tmp_foreg)
-                            self.vis_tiles.change_layer(tmp_foreg, 3)
-
-                    # Illumination overlay
-                    light_overlay = tmp_maptile.get_light_overlay()
-                    self.vis_tiles.add(light_overlay)
-                    self.vis_tiles.change_layer(light_overlay, 4)
-
-                except IndexError:
-                    pass
-
-    # Draws players over visible tiles
-    def update_drawplayers(self):
-        for pl_id, pl_obj in self.playerlist.items():
-            if self.spritelist.has(pl_obj):
-                self.spritelist.remove(pl_obj)
-            try:
-                if self.map.map_data[int(pl_obj.y)][int(pl_obj.x)].light_visible:
-                    self.spritelist.add(pl_obj)
-            except IndexError:
-                pass
+    def title_loop(self):
+        for i in range(3):
+            if self.title_mode == i:
+                if self.title_col[i] == 0:
+                    self.title_mode = randint(0,2)
+                else:
+                    self.title_col[i] -= 1
+            else:
+                if self.title_col[i] < 255:
+                    self.title_col[i] += 1
 
     def main_loop(self):
-        ping_ticker = 300 # Ping (keeps connection alive)
-        anim_ticker = 30 # Tile animations
-
         done = False
+
+        # Initialize screens
+        self.screens["menu_main"].setup(self.display)
+        self.screens["menu_continuechar"].setup(self.display, self.player)
+        self.screens["menu_newchar"].setup(self.display, self.player)
+        self.screens["menu_newacc"].setup(self.display)
+        self.screens["menu_connect"].setup(self.display)
+        self.screens["game"].setup(self.conn, self.display, self.player)
+
+        # Screen transitions
+        # Continue char -> Connect, set connection mode to continue character (lets server know we will load a character)
+        scr_fro = self.screens["menu_continuechar"]
+        scr_to = self.screens["menu_connect"]
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "set", "connect_mode", "connect_continuechar")
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "call", "update_account_data", scr_fro.get_account_data)
+
+        # New char -> Connect, set connection mode to new character (lets server know we will create a new character)
+        scr_fro = self.screens["menu_newchar"]
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "set", "connect_mode", "connect_newchar")
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "call", "update_account_data", scr_fro.get_account_data)
+
+        # New account -> Connect, set connection mode to new account (lets server know we will create a new account)
+        scr_fro = self.screens["menu_newacc"]
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "set", "connect_mode", "connect_newacc")
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "call", "update_account_data", scr_fro.get_account_data)
+
+        # Connect -> Game, connect to server
+        scr_fro = self.screens["menu_connect"]
+        scr_to = self.screens["game"]
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "call", "update_account_data", scr_fro.get_account_data)
+        self.screen_transitions.add_interaction(scr_fro, scr_to, "call", "connect", scr_fro.get_server_data)
+
+        # Menu background
+        menu_background = pygame.image.load("assets/titlebg.png")
+        menu_background = pygame.transform.scale(menu_background, self.display.get_size())
+
         while not done:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    done = True
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        newlevel_data = self.map.transfer_level(self.player.x, self.player.y)
-                        if newlevel_data:
-                            self.conn.send("xfer_map|" + newlevel_data[1])
-                            self.load_map(newlevel_data[1])
-                            self.player.set_pos(int(newlevel_data[2]), int(newlevel_data[3]))
-                            self.update_camera_plpos()
+            self.display.fill((0, 0, 0))
 
-            self.server_listener()
+            # Title and background for menus
+            if not self.current_screen == "game":
+                self.display.blit(menu_background, (0,0))
 
-            self.keys_held = pygame.key.get_pressed()
-            self.player_loop()
+                self.title_loop()
+                tmp_title = self.title_font.render("A U O", True, self.title_col)
+                tmp_title_rect = tmp_title.get_rect(center=(self.display.get_width() / 2, 128))
+                self.display.blit(tmp_title, tmp_title_rect)
 
-            self.spritelist.update()
-
-            self.display.fill((0,0,0))
-            self.entity_surface.fill((255,0,255))
-
-            # Tile animations
-            if anim_ticker > 0:
-                anim_ticker -= 1
-            else:
-                self.map.anim_tiles()
-                anim_ticker = 30
-
-            if self.updatelayers:
-                self.update_drawlayers()
-                self.updatelayers = False
-
-            self.vis_tiles.draw(self.game_surface)
-
-            # Draw game surface (tiles)
-            self.display.blit(self.game_surface, self.camera_pos)
-            # Draw sprites
-            self.update_drawplayers()
-            self.spritelist.draw(self.entity_surface)
-            self.display.blit(self.entity_surface, self.camera_pos)
-
+            newscreen = self.screens[self.current_screen].loop()
             pygame.display.update()
+
+            if not newscreen:
+                done = True
+            elif type(newscreen) is str:
+                self.screen_transitions.transfer(self.screens[self.current_screen], self.screens[newscreen])
+                self.screens[self.current_screen].reset()
+                self.current_screen = newscreen
+
             self.clock.tick(60)
 
-            # Keep connection alive
-            if ping_ticker > 0:
-                ping_ticker -= 1
-            else:
-                self.conn.send("ping")
-                ping_ticker = 300
+        if self.conn.is_connected():
+            self.conn.send("disconnect")
+            self.conn.disconnect()
 
-        self.conn.send("disconnect")
-        self.conn.disconnect()
+""" Screen Transitions Usage:
+    Used for interactions between different screens (data sharing)
+        -add_interaction: 
+            from_scr/to_scr: relevant screen objects
+            action: can be "call", if calling a target method, or "set" if setting a target attribute
+            target: target method/attribute, relative to action parameter
+            value: list of method arguments/variable to set, relative to action parameter
+            If value is a method, it must return a list of variables to be used as arguments for the target method
+"""
+class Screen_Transitions(object):
+    def __init__(self):
+        self.interactions = {}
 
-    def player_loop(self):
-        # Player movement
-        mv_axis = [0, 0]
-        if self.keys_held[pygame.K_KP6] or self.keys_held[pygame.K_KP9] or self.keys_held[pygame.K_KP3]:  # right
-            mv_axis[0] = 1
-        elif self.keys_held[pygame.K_KP4] or self.keys_held[pygame.K_KP1] or self.keys_held[pygame.K_KP7]:  # left
-            mv_axis[0] = -1
-        if self.keys_held[pygame.K_KP8] or self.keys_held[pygame.K_KP7] or self.keys_held[pygame.K_KP9]:  # up
-            mv_axis[1] = -1
-        elif self.keys_held[pygame.K_KP2] or self.keys_held[pygame.K_KP1] or self.keys_held[pygame.K_KP3]:  # down
-            mv_axis[1] = 1
+    def add_interaction(self, from_scr, to_scr, action, target, value=None):
+        if from_scr not in self.interactions:
+            self.interactions[from_scr] = {to_scr: []}
+        self.interactions[from_scr][to_scr].append([action, target, value])
 
-        if not (mv_axis[0] == 0 and mv_axis[1] == 0):
-            if self.player.move_axis(mv_axis, self.map):
-                self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
-
-        # Update player's map visibility
-        if self.player.moved:
-            self.update_camera_plpos()
-            self.updatelayers = True
-            self.player.moved = False
-
-    def server_listener(self):
-        server_data = self.conn.receive(False)
-        if server_data:
-            #print(server_data)
-            server_data = server_data.split('|')
-            if server_data[0] == "assign_id": # ID assignment
-                self.player.id = int(server_data[1])
-
-            elif server_data[0] == "loadmap": # Map loading / set player pos
-                self.load_map(server_data[1])
-                if server_data[2] == "spawn":
-                    self.player.set_pos(self.map.spawnpos[0], self.map.spawnpos[1])
-                else:
-                    pl_pos = server_data[2].split('/')
-                    self.player.set_pos(int(pl_pos[0]), int(pl_pos[1]))
-                self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
-
-            elif server_data[0] == "new_pl": # Create new player
-                newplayer = Entity(int(server_data[1]), self.map.spawnpos, (int(server_data[2]), 4))
-                self.playerlist[int(server_data[1])] = newplayer
-                self.spritelist.add(newplayer)
-
-            elif server_data[0] == "remove_pl": # Remove player
-                try:
-                    tmp_player = self.playerlist[int(server_data[1])]
-                except NameError:
-                    pass
-                else:
-                    self.spritelist.remove(tmp_player)
-                    self.playerlist.pop(int(server_data[1]), None)
-
-            elif server_data[0] == "update_pl": # Update player position
-                try: self.playerlist[int(server_data[1])].set_pos(float(server_data[2]), float(server_data[3]))
-                except KeyError: pass
-
-            elif server_data[0] == "setstat_pl": # Update player stat
-                try:
-                    value = server_data[3]
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        pass
-
-                    setattr(self.playerlist[int(server_data[1])], server_data[2], value)
-                except KeyError: pass
+    def transfer(self, from_scr, to_scr):
+        if from_scr in self.interactions:
+            if to_scr in self.interactions[from_scr]:
+                for inter in self.interactions[from_scr][to_scr]:
+                    if inter[0] == "call":
+                        tgt_method = getattr(to_scr, inter[1], inter[2])
+                        if not inter[2]:
+                            tgt_method()
+                        elif type(inter[2]) is MethodType:
+                            tgt_method(*inter[2]())
+                        else:
+                            tgt_method(*inter[2])
+                    elif inter[0] == "set":
+                        setattr(to_scr, inter[1], inter[2])

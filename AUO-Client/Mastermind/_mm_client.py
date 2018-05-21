@@ -23,6 +23,9 @@ class MastermindClientBase(object):
             MastermindWarningClient("In a client, .disconnect() was not called before destruction!  Calling automatically.")
             self.disconnect()
 
+    def is_connected(self):
+        return self._mm_connected
+
     def connect(self, ip,port):
         if self._mm_connected:
             MastermindWarningClient("Client is already connected!  Ignoring .connect(...).")

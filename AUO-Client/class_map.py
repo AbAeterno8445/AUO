@@ -97,8 +97,7 @@ class GameMap(object):
     def anim_tiles(self):
         self.anim_state = (self.anim_state + 1) % 4
         for tile in self.animated_tiles:
-            if tile.light_visible:
-                tile.anim(self.anim_state)
+            tile.anim(self.anim_state)
 
     def do_fov(self, x, y, radius, row, start_slope, end_slope, xx, xy, yx, yy):
         if start_slope < end_slope: return
