@@ -1,11 +1,11 @@
 from class_entity import *
 
-from screen_menu_main import Screen_Menu_Main
-from screen_menu_continuechar import Screen_Menu_Continuechar
-from screen_menu_newchar import Screen_Menu_Newchar
-from screen_menu_newacc import Screen_Menu_Newacc
-from screen_menu_connect import Screen_Menu_Connect
-from screen_game import Screen_Game
+from screen_menu_main import ScreenMenuMain
+from screen_menu_continuechar import ScreenMenuContinuechar
+from screen_menu_newchar import ScreenMenuNewchar
+from screen_menu_newacc import ScreenMenuNewacc
+from screen_menu_connect import ScreenMenuConnect
+from screen_game import ScreenGame
 
 from types import MethodType
 from Mastermind import *
@@ -23,12 +23,12 @@ class GameSystem(object):
         self.title_mode = randint(0, 2)
 
         self.screens = {
-            "menu_main": Screen_Menu_Main(),
-            "menu_continuechar": Screen_Menu_Continuechar(),
-            "menu_newchar": Screen_Menu_Newchar(),
-            "menu_newacc": Screen_Menu_Newacc(),
-            "menu_connect": Screen_Menu_Connect(),
-            "game": Screen_Game()
+            "menu_main": ScreenMenuMain(),
+            "menu_continuechar": ScreenMenuContinuechar(),
+            "menu_newchar": ScreenMenuNewchar(),
+            "menu_newacc": ScreenMenuNewacc(),
+            "menu_connect": ScreenMenuConnect(),
+            "game": ScreenGame()
         }
         self.screen_transitions = Screen_Transitions()
         self.current_screen = "menu_main"
@@ -43,7 +43,7 @@ class GameSystem(object):
 
     def save_screen_options(self):
         with open("data/options", "w") as opt_file:
-            opt_file.write("menu_continuechar:char_name:" + self.screens["menu_continuechar"].char_name + "\n")
+            opt_file.write("menu_continuechar:char_name:" + self.player.name + "\n")
             opt_file.write("menu_continuechar:acc_name:" + self.screens["menu_continuechar"].acc_name + "\n")
 
             opt_file.write("menu_newchar:acc_name:" + self.screens["menu_newchar"].acc_name + "\n")
@@ -120,17 +120,17 @@ class GameSystem(object):
                 tmp_title_rect = tmp_title.get_rect(center=(self.display.get_width() / 2, 128))
                 self.display.blit(tmp_title, tmp_title_rect)
 
+            # Process screen loop. If it returns false, end the application. If it returns a string, change to screen with that string as name
             newscreen = self.screens[self.current_screen].loop()
             pygame.display.update()
+            self.clock.tick(60)
 
             if not newscreen:
                 done = True
             elif type(newscreen) is str:
                 self.screen_transitions.transfer(self.screens[self.current_screen], self.screens[newscreen])
-                self.screens[self.current_screen].reset()
                 self.current_screen = newscreen
-
-            self.clock.tick(60)
+                self.screens[self.current_screen].reset()
 
         if self.conn.is_connected():
             self.conn.send("disconnect")

@@ -5,9 +5,9 @@ from patcher import *
 from class_map import GameMap
 from math import *
 from pygame.math import Vector2
-import pygame, os.path, base64
+import pygame, base64
 
-class Screen_Game(Screen):
+class ScreenGame(Screen):
     def __init__(self):
         Screen.__init__(self)
 
