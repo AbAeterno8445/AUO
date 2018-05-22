@@ -11,10 +11,10 @@ class GameMap(object):
             if other_cl is not client:
                 # Send other players info about joining player
                 self.server.callback_client_send(other_cl.conn, "new_pl|" + str(client.id) + "|" + str(client.char))
-                self.server.callback_client_send(other_cl.conn, "update_pl|" + str(client.id) + "|" + str(client.pos.x) + "|" + str(client.pos.y))
+                self.server.callback_client_send(other_cl.conn, "update_pl|" + str(client.id) + "|" + str(client.x) + "|" + str(client.y))
                 # Send joining player info about other players
                 self.server.callback_client_send(client.conn, "new_pl|" + str(other_cl.id) + "|" + str(other_cl.char))
-                self.server.callback_client_send(client.conn, "update_pl|" + str(other_cl.id) + "|" + str(other_cl.pos.x) + "|" + str(other_cl.pos.y))
+                self.server.callback_client_send(client.conn, "update_pl|" + str(other_cl.id) + "|" + str(other_cl.x) + "|" + str(other_cl.y))
 
     def player_leave(self, client):
         for cl in self.client_list:

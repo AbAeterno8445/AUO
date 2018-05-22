@@ -1,5 +1,3 @@
-from pygame.math import Vector2
-
 class Client(object):
     def __init__(self, id, conn):
         self.id = id
@@ -13,7 +11,8 @@ class Client(object):
 
         self.name = ""
 
-        self.pos = Vector2(0, 0)
+        self.x = 0
+        self.y = 0
         self.char = 0
 
         # File download list for patcher

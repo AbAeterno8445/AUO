@@ -171,14 +171,15 @@ class GameMap(object):
             if newlevel > tile.lightlevel:
                 tile.set_lightlevel(newlevel)
 
-    def lighting_update(self, player_x, player_y, player_light):
+    def lighting_update(self, players):
         vis_tiles = self.get_visible_tiles()
         # Reset tile lighting
         for tile in vis_tiles:
             tile.set_lightlevel(self.default_light, True)
 
-        # Player light
-        self.lighting_cast(player_x, player_y, player_light)
+        # Player lights
+        for pl in players:
+            self.lighting_cast(pl.x, pl.y, pl.light)
 
         # Light emitting tiles
         for tile in vis_tiles:

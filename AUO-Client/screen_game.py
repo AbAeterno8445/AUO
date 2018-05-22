@@ -49,6 +49,9 @@ class Screen_Game(Screen):
         self.entity_surface = pygame.Surface(self.display.get_size()).convert()
         self.entity_surface.set_colorkey((255, 0, 255))
 
+    def get_all_players(self):
+        return [self.playerlist[pl] for pl in self.playerlist] + [self.player]
+
     def update_account_data(self, name, pw):
         self.acc_name = name
         self.acc_pw = pw
@@ -154,7 +157,7 @@ class Screen_Game(Screen):
         # Update field of view
         self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True)
         # Update illumination
-        self.map.lighting_update(self.player.x, self.player.y, self.player.light)
+        self.map.lighting_update(self.get_all_players())
 
         self.game_surface.fill((0,0,0))
         self.vis_tiles.empty()
@@ -180,7 +183,6 @@ class Screen_Game(Screen):
                         tmp_maptile.set_lightlevel(3)
                     else:
                         tmp_maptile.toggle_grayscale(False)
-                        tmp_maptile.update_lightlevel()
 
                     if tmp_maptile.light_visible or tmp_maptile.explored:
                         if tmp_maptile.has_flag("wall"):
@@ -213,14 +215,28 @@ class Screen_Game(Screen):
         for pl_id, pl_obj in self.playerlist.items():
             try:
                 if self.map.map_data[int(pl_obj.y)][int(pl_obj.x)].light_visible:
+                    # Update illumination with player light
+                    if pl_obj.moved:
+                        self.map.lighting_update(self.get_all_players())
+                        pl_obj.moved = False
+
                     pl_obj.update()
                     if not self.vis_tiles.has(pl_obj):
                         self.vis_tiles.add(pl_obj)
                         self.vis_tiles.change_layer(pl_obj, 4)
                 elif self.vis_tiles.has(pl_obj):
-                    self.vis_tiles.remove(pl_obj)
+                    self.remove_player_sprite(pl_obj)
             except IndexError:
                 pass
+
+    def remove_player_sprite(self, player):
+        if self.vis_tiles.has(player):
+            self.vis_tiles.remove(player)
+
+            tmp_plist = self.get_all_players()
+            if player in tmp_plist:
+                tmp_plist.remove(player)
+            self.map.lighting_update(tmp_plist)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -333,15 +349,11 @@ class Screen_Game(Screen):
                 except NameError:
                     pass
                 else:
-                    if self.vis_tiles.has(tmp_player):
-                        self.vis_tiles.remove(tmp_player)
-                        # Update tile below removed player, avoids black box issue on player disconnect
-                        try: self.map.map_data[int(tmp_player.y)][int(tmp_player.x)].dirty = 1
-                        except IndexError: pass
                     self.playerlist.pop(int(server_data[1]), None)
+                    self.remove_player_sprite(tmp_player)
 
             elif server_data[0] == "update_pl": # Update player position
-                try: self.playerlist[int(server_data[1])].set_pos(float(server_data[2]), float(server_data[3]))
+                try: self.playerlist[int(server_data[1])].set_pos(int(server_data[2]), int(server_data[3]))
                 except KeyError: pass
 
             elif server_data[0] == "setstat_pl": # Update player stat

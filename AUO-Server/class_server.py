@@ -168,8 +168,8 @@ class Server(MastermindServerUDP):
             inc_client.current_map.player_enter(inc_client)
 
         elif data[0] == "pl_move": # Player movement
-            inc_client.pos.x = float(data[1])
-            inc_client.pos.y = float(data[2])
+            inc_client.x = int(data[1])
+            inc_client.y = int(data[2])
             for cl in self.client_list:
                 if cl is not conn:
                     self.callback_client_send(cl, "update_pl|" + str(self.client_list[conn].id) + "|" + str(data[1]) + "|" + str(data[2]))
