@@ -74,6 +74,7 @@ class Screen_Menu_Newchar(Screen):
 
         # Account name
         tmp_button = Menu_Button("input acc_name", "Account name: ", True)
+        tmp_button.input_text = self.acc_name
         tmp_button.set_pos(disp_centerx, disp_centery + 72)
         self.menu_buttons.append(tmp_button)
 

@@ -49,12 +49,13 @@ class Screen_Menu_Connect(Screen):
         # region Connect to server buttons
         # Server IP
         tmp_button = Menu_Button("input server_ip", "Server IP: ", True)
+        tmp_button.input_text = self.server_ip
         tmp_button.set_pos(disp_centerx, disp_centery - 36)
         self.menu_buttons.append(tmp_button)
 
         # Server port
         tmp_button = Menu_Button("input server_port", "Port: ", True)
-        tmp_button.input_text = "6000"
+        tmp_button.input_text = self.server_port
         tmp_button.input_number = True
         tmp_button.set_pos(disp_centerx, disp_centery)
         self.menu_buttons.append(tmp_button)

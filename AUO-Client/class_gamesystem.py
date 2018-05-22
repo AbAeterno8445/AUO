@@ -41,6 +41,22 @@ class GameSystem(object):
         pygame.display.set_icon(pygame.image.load("assets/AUOicon.png"))
         pygame.display.set_caption("AUO Client")
 
+    def save_screen_options(self):
+        with open("data/options", "w") as opt_file:
+            opt_file.write("menu_continuechar:char_name:" + self.screens["menu_continuechar"].char_name + "\n")
+            opt_file.write("menu_continuechar:acc_name:" + self.screens["menu_continuechar"].acc_name + "\n")
+
+            opt_file.write("menu_newchar:acc_name:" + self.screens["menu_newchar"].acc_name + "\n")
+
+            opt_file.write("menu_connect:server_ip:" + self.screens["menu_connect"].server_ip + "\n")
+
+    def load_screen_options(self):
+        with open("data/options", "r") as opt_file:
+            for line in opt_file:
+                line = line.strip().split(':')
+                if len(line) == 3:
+                    setattr(self.screens[line[0]], line[1], line[2])
+
     def title_loop(self):
         for i in range(3):
             if self.title_mode == i:
@@ -54,6 +70,8 @@ class GameSystem(object):
 
     def main_loop(self):
         done = False
+
+        self.load_screen_options()
 
         # Initialize screens
         self.screens["menu_main"].setup(self.display)
@@ -117,6 +135,8 @@ class GameSystem(object):
         if self.conn.is_connected():
             self.conn.send("disconnect")
             self.conn.disconnect()
+
+        self.save_screen_options()
 
 """ Screen Transitions Usage:
     Used for interactions between different screens (data sharing)

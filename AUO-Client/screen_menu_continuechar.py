@@ -45,16 +45,19 @@ class Screen_Menu_Continuechar(Screen):
         # region Continue with character buttons
         # Character name
         tmp_button = Menu_Button("input char_name", "Character name: ", True)
+        tmp_button.input_text = self.char_name
         tmp_button.set_pos(disp_centerx, disp_centery - 36)
         self.menu_buttons.append(tmp_button)
 
         # Account name
         tmp_button = Menu_Button("input acc_name", "Account name: ", True)
+        tmp_button.input_text = self.acc_name
         tmp_button.set_pos(disp_centerx, disp_centery)
         self.menu_buttons.append(tmp_button)
 
         # Account password
         tmp_button = Menu_Button("input acc_pw", "Account password: ", True)
+        tmp_button.input_text = self.acc_pw
         tmp_button.input_hidden = True
         tmp_button.set_pos(disp_centerx, disp_centery + 36)
         self.menu_buttons.append(tmp_button)
