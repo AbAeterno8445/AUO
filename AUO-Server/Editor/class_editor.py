@@ -249,6 +249,12 @@ class Editor(object):
                             elif self.input_action == "setflag":
                                 self.newtileflags = self.text_input.strip().split(':')
 
+                            elif self.input_action == "addflag":
+                                tmp_flags = self.text_input.strip().split(':')
+                                for flag in tmp_flags:
+                                    if flag not in self.newtileflags:
+                                        self.newtileflags.append(flag)
+
                             if not inp_react:
                                 self.set_inputmode(False, "")
 
@@ -275,6 +281,9 @@ class Editor(object):
                                     self.set_inputmode(True, "setflag", "Flags > ")
                                 else: # Toggle off if active
                                     self.newtileflags = []
+                        elif self.keys_held[pygame.K_LALT]: # ALT + key
+                            if event.key == pygame.K_f:
+                                self.set_inputmode(True, "addflag", "Add flags > ")
 
                         elif event.key == pygame.K_f: # F, set foreground mode
                             self.foreg_mode = not self.foreg_mode
