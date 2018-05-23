@@ -28,6 +28,7 @@ class ScreenGame(Screen):
         self.acc_pw = ""
 
         self.ping_ticker = 300  # Ping (keeps connection alive)
+        self.ping_timeout = 0
         self.anim_ticker = 30  # Tile animations
 
         # Map drawing layers
@@ -296,6 +297,15 @@ class ScreenGame(Screen):
             self.ping_ticker -= 1
         else:
             self.conn.send("ping")
+            rec = self.conn.receive()
+            if rec == "pong":
+                self.ping_timeout = 0
+            else:
+                self.ping_timeout += 1
+                if self.ping_timeout >= 2:
+                    print("Lost connection to server.")
+                    self.conn.disconnect()
+
             self.ping_ticker = 300
 
         return Screen.loop(self)
