@@ -144,7 +144,7 @@ class GameMap(object):
                         self.do_fov(x, y, radius, i + 1, start_slope, l_slope, xx, xy, yx, yy)
             if blocked: break
 
-    def cast_fov(self, x, y, radius, player=False):
+    def cast_fov(self, x, y, radius, player=False, x_min=None, x_max=None, y_min=None, y_max=None):
         multipliers = [
             [1, 0, 0, -1, -1, 0, 0, 1],
             [0, 1, -1, 0, 0, -1, 1, 0],
@@ -152,9 +152,21 @@ class GameMap(object):
             [1, 0, 0, 1, -1, 0, 0, -1]
         ]
 
-        for row in self.map_data:
-            for tile in row:
-                tile.light_visible = False
+        if not x_min or not x_max or not y_min or not y_max:
+            for row in self.map_data:
+                for tile in row:
+                    tile.light_visible = False
+        else:
+            for i in range(x_min, x_max):
+                if i > self.width:
+                    break
+                for j in range(y_min, y_max):
+                    if j > self.height:
+                        break
+                    try:
+                        self.map_data[j][i].light_visible = False
+                    except IndexError:
+                        pass
 
         if player:
             self.map_data[y][x].light_visible = True

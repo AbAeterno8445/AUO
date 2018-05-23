@@ -154,11 +154,6 @@ class ScreenGame(Screen):
         self.update_drawlayers()
 
     def update_drawlayers(self):
-        # Update field of view
-        self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True)
-        # Update illumination
-        self.map.lighting_update(self.get_all_players())
-
         self.game_surface.fill((0,0,0))
         self.vis_tiles.empty()
         # Visibility range in X axis
@@ -167,6 +162,12 @@ class ScreenGame(Screen):
         # Visibility range in Y axis
         vis_y_min = max(0, floor(-self.camera_pos.y / 32))
         vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+
+        # Update field of view
+        self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True, vis_x_min, vis_x_max, vis_y_min, vis_y_max)
+        # Update illumination
+        self.map.lighting_update(self.get_all_players())
+
         # Rendering walls and shadows in order
         walls_list = []
         for i in range(vis_x_min, vis_x_max):
@@ -284,7 +285,6 @@ class ScreenGame(Screen):
             # Draw game surface (tiles)
             self.display.blit(self.game_surface, self.camera_pos)
             # Draw sprites
-            #self.update_drawplayers()
             self.spritelist.update()
             self.spritelist.draw(self.entity_surface)
             self.display.blit(self.entity_surface, self.camera_pos)
@@ -296,9 +296,7 @@ class ScreenGame(Screen):
             self.conn.send("ping")
             self.ping_ticker = 300
 
-        if self.newscreen:
-            return self.newscreen
-        return True
+        return Screen.loop(self)
 
     def player_loop(self):
         # Player movement
