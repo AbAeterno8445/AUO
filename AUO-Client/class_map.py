@@ -85,12 +85,26 @@ class GameMap(object):
 
         return self.map_data
 
-    def get_visible_tiles(self):
+    def get_visible_tiles(self, area_rect=None):
         tmp_tilelist = []
-        for row in self.map_data:
-            for tile in row:
-                if tile.light_visible:
-                    tmp_tilelist.append(tile)
+        if not area_rect:
+            for row in self.map_data:
+                for tile in row:
+                    if tile.light_visible:
+                        tmp_tilelist.append(tile)
+        else:
+            for i in range(area_rect[0], area_rect[1]):
+                if i > self.width:
+                    break
+                for j in range(area_rect[2], area_rect[3]):
+                    if j > self.height:
+                        break
+                    try:
+                        tmp_tile = self.map_data[j][i]
+                        if tmp_tile.light_visible:
+                            tmp_tilelist.append(tmp_tile)
+                    except IndexError:
+                        pass
 
         return tmp_tilelist
 
@@ -144,7 +158,7 @@ class GameMap(object):
                         self.do_fov(x, y, radius, i + 1, start_slope, l_slope, xx, xy, yx, yy)
             if blocked: break
 
-    def cast_fov(self, x, y, radius, player=False, x_min=None, x_max=None, y_min=None, y_max=None):
+    def cast_fov(self, x, y, radius, player=False, area_rect=None):
         multipliers = [
             [1, 0, 0, -1, -1, 0, 0, 1],
             [0, 1, -1, 0, 0, -1, 1, 0],
@@ -152,15 +166,15 @@ class GameMap(object):
             [1, 0, 0, 1, -1, 0, 0, -1]
         ]
 
-        if not x_min or not x_max or not y_min or not y_max:
+        if not area_rect:
             for row in self.map_data:
                 for tile in row:
                     tile.light_visible = False
         else:
-            for i in range(x_min, x_max):
+            for i in range(area_rect[0], area_rect[1]):
                 if i > self.width:
                     break
-                for j in range(y_min, y_max):
+                for j in range(area_rect[2], area_rect[3]):
                     if j > self.height:
                         break
                     try:
@@ -175,16 +189,16 @@ class GameMap(object):
             self.do_fov(x, y, radius, 1, 1.0, 0.0, multipliers[0][i], multipliers[1][i], multipliers[2][i], multipliers[3][i])
 
     # Casts a light at a position
-    def lighting_cast(self, source_x, source_y, strength):
-        for tile in self.get_visible_tiles():
+    def lighting_cast(self, source_x, source_y, strength, area_rect=None):
+        for tile in self.get_visible_tiles(area_rect):
             dist = abs(tile.pos[0] - source_x) + abs(tile.pos[1] - source_y)
 
             newlevel = min(16, floor(tile.lightlevel + 16 - 16 * dist / strength))
             if newlevel > tile.lightlevel:
                 tile.set_lightlevel(newlevel)
 
-    def lighting_update(self, players):
-        vis_tiles = self.get_visible_tiles()
+    def lighting_update(self, players, area_rect=None):
+        vis_tiles = self.get_visible_tiles(area_rect)
         # Reset tile lighting
         for tile in vis_tiles:
             tile.set_lightlevel(self.default_light, True)

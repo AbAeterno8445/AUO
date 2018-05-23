@@ -162,11 +162,13 @@ class ScreenGame(Screen):
         # Visibility range in Y axis
         vis_y_min = max(0, floor(-self.camera_pos.y / 32))
         vis_y_max = max(0, ceil((self.display.get_height() - self.camera_pos.y) / 32))
+        # Visibility rectangle
+        vis_rect = (vis_x_min, vis_x_max, vis_y_min, vis_y_max)
 
         # Update field of view
-        self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True, vis_x_min, vis_x_max, vis_y_min, vis_y_max)
+        self.map.cast_fov(self.player.x, self.player.y, self.player.sightrange, True, vis_rect)
         # Update illumination
-        self.map.lighting_update(self.get_all_players())
+        self.map.lighting_update(self.get_all_players(), vis_rect)
 
         # Rendering walls and shadows in order
         walls_list = []
