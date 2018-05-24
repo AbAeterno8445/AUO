@@ -105,7 +105,7 @@ class GameSystem(object):
         self.screen_transitions.add_interaction(scr_fro, scr_to, "call", "connect", scr_fro.get_server_data)
 
         # Menu background
-        menu_background = pygame.image.load("assets/titlebg.png")
+        menu_background = pygame.image.load("assets/titlebg.png").convert_alpha()
         menu_background = pygame.transform.scale(menu_background, self.display.get_size())
 
         while not done:

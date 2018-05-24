@@ -1,5 +1,5 @@
 from class_tile import Tile
-import pygame
+import pygame, queue
 from math import floor
 
 class GameMap(object):
@@ -84,6 +84,19 @@ class GameMap(object):
             return False
 
         return self.map_data
+
+    def get_tile_neighbors(self, x, y, diag=True):
+        tmp_neighbors = []
+        for i in range(-1,2):
+            for j in range(-1,2):
+                if diag or (not diag and (i == 0 or j == 0)):
+                    try:
+                        xx = max(0, x + j)
+                        yy = max(0, y + i)
+                        tmp_neighbors.append(self.map_data[yy][xx])
+                    except IndexError:
+                        pass
+        return tmp_neighbors
 
     def get_visible_tiles(self, area_rect=None):
         tmp_tilelist = []
@@ -189,13 +202,28 @@ class GameMap(object):
             self.do_fov(x, y, radius, 1, 1.0, 0.0, multipliers[0][i], multipliers[1][i], multipliers[2][i], multipliers[3][i])
 
     # Casts a light at a position
-    def lighting_cast(self, source_x, source_y, strength, area_rect=None):
-        for tile in self.get_visible_tiles(area_rect):
-            dist = abs(tile.pos[0] - source_x) + abs(tile.pos[1] - source_y)
+    def lighting_cast(self, source_x, source_y, strength):
+        try:
+            start_tile = self.map_data[source_y][source_x]
+        except IndexError:
+            return
 
-            newlevel = min(16, floor(tile.lightlevel + 16 - 16 * dist / strength))
-            if newlevel > tile.lightlevel:
-                tile.set_lightlevel(newlevel)
+        frontier = queue.Queue()
+        frontier.put(start_tile)
+        light_strength = {}
+        light_strength[start_tile] = 16
+
+        while not frontier.empty():
+            current_tile = frontier.get()
+            if current_tile.lightlevel < light_strength[current_tile]:
+                current_tile.set_lightlevel(light_strength[current_tile])
+
+            if not current_tile.has_flag("bv") or current_tile is start_tile:
+                for next in self.get_tile_neighbors(current_tile.pos[0], current_tile.pos[1], False):
+                    if next not in light_strength:
+                        light_strength[next] = max(3, light_strength[current_tile] - 16 / strength)
+                        if light_strength[next] > 3:
+                            frontier.put(next)
 
     def lighting_update(self, players, area_rect=None):
         vis_tiles = self.get_visible_tiles(area_rect)

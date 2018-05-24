@@ -184,7 +184,7 @@ class ScreenGame(Screen):
 
                     if not tmp_maptile.light_visible and tmp_maptile.explored:
                         tmp_maptile.toggle_grayscale(True)
-                        tmp_maptile.set_lightlevel(3)
+                        tmp_maptile.set_lightlevel(self.map.default_light)
                     else:
                         tmp_maptile.toggle_grayscale(False)
 
