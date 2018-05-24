@@ -296,17 +296,13 @@ class ScreenGame(Screen):
         if self.ping_ticker > 0:
             self.ping_ticker -= 1
         else:
-            self.conn.send("ping")
-            rec = self.conn.receive()
-            if rec == "pong":
-                self.ping_timeout = 0
+            self.ping_timeout += 1
+            if self.ping_timeout >= 2:
+                print("Lost connection to server.")
+                self.conn.disconnect()
             else:
-                self.ping_timeout += 1
-                if self.ping_timeout >= 2:
-                    print("Lost connection to server.")
-                    self.conn.disconnect()
-
-            self.ping_ticker = 300
+                self.conn.send("ping")
+                self.ping_ticker = 300
 
         return Screen.loop(self)
 
@@ -380,3 +376,6 @@ class ScreenGame(Screen):
                     else:
                         self.playerlist[pl_id].set_stat(server_data[2], value)
                 except KeyError: pass
+
+            elif server_data[0] == "pong": # Keeps connection alive
+                self.ping_timeout = 0
