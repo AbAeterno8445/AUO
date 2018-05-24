@@ -12,7 +12,7 @@ from Mastermind import *
 import pygame
 
 class GameSystem(object):
-    def __init__(self):
+    def __init__(self, display):
         self.conn = MastermindClientUDP(10.0, 10.0)
         self.conn_ip = ""
         self.conn_port = ""
@@ -33,13 +33,8 @@ class GameSystem(object):
         self.screen_transitions = Screen_Transitions()
         self.current_screen = "menu_main"
 
-        self.display = None
+        self.display = display
         self.clock = pygame.time.Clock()
-
-    def init_display(self, disp_w, disp_h):
-        self.display = pygame.display.set_mode((disp_w, disp_h))
-        pygame.display.set_icon(pygame.image.load("assets/AUOicon.png"))
-        pygame.display.set_caption("AUO Client")
 
     def save_screen_options(self):
         with open("data/options", "w") as opt_file:

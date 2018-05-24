@@ -2,8 +2,11 @@ from class_gamesystem import GameSystem
 import pygame
 
 def main():
-    gamesys = GameSystem()
-    gamesys.init_display(800, 600)
+    display = pygame.display.set_mode((800, 600))
+    pygame.display.set_icon(pygame.image.load("assets/AUOicon.png"))
+    pygame.display.set_caption("AUO Client")
+
+    gamesys = GameSystem(display)
     gamesys.main_loop()
 
 if __name__ == "__main__":

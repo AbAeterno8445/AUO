@@ -63,7 +63,7 @@ class Tile(pygame.sprite.DirtySprite):
     def get_wallshadow(self):
         if self.wallshadow is None:
             self.wallshadow = pygame.sprite.DirtySprite()
-            self.wallshadow.image = pygame.image.load("assets/wallshadow.png")
+            self.wallshadow.image = pygame.image.load("assets/wallshadow.png").convert_alpha()
             self.wallshadow.rect = self.wallshadow.image.get_rect(topleft=(self.draw_pos[0] - 8, self.draw_pos[1] - 8))
         return self.wallshadow
 
