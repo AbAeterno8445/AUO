@@ -299,10 +299,12 @@ class ScreenGame(Screen):
             self.ping_timeout += 1
             if self.ping_timeout >= 2:
                 print("Lost connection to server.")
+                self.ping_timeout = 0
                 self.conn.disconnect()
             else:
                 self.conn.send("ping")
-                self.ping_ticker = 300
+
+            self.ping_ticker = 300
 
         return Screen.loop(self)
 
