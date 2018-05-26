@@ -157,7 +157,7 @@ class Server(MastermindServerUDP):
             self.callback_client_send(conn, "loadmap|town|spawn")
             inc_client.current_map.player_enter(inc_client)
 
-            self.client_update_stat(inc_client, "char")
+            self.client_update_stats(inc_client, inc_client.get_shared_stats())
 
         elif data[0] == "disconnect": # Player disconnection
             self.callback_disconnect_client(conn)
@@ -179,15 +179,20 @@ class Server(MastermindServerUDP):
 
         return super(MastermindServerUDP, self).callback_client_handle(conn, data)
 
-    # Changes a stat server-side then updates
-    def client_set_stat(self, client, stat, value, update):
-        setattr(client, stat, value)
+    # Changes server-side stats then updates
+    # Stats is a list of sub-lists [(<stat name>, <new value>), ...]
+    def client_set_stats(self, client, stats, update):
+        for s in stats:
+            setattr(client, s[0], s[1])
         if update:
-            self.update_stat(client, stat, value)
+            self.update_stat(client, stats)
 
-    # Updates all other clients with new stat for this client
-    def client_update_stat(self, client, stat):
-        value = getattr(client, stat, 0)
-        self.callback_client_send(client.conn, "setstat_pl|-1|" + stat + "|" + str(value))
+    # Update clients with server-side stats
+    def client_update_stats(self, client, stats):
+        stat_upd_msg = ""
+        for s in stats:
+            stat_upd_msg += "|" + s[0] + "/" + str(s[1])
+
+        self.callback_client_send(client.conn, "setstat_pl|-1" + stat_upd_msg)
         if client.current_map:
-            client.current_map.send_all("setstat_pl|" + str(client.id) + "|" + stat + "|" + str(value), client)
+            client.current_map.send_all("setstat_pl|" + str(client.id) + stat_upd_msg, client)

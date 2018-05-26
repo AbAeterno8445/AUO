@@ -29,16 +29,12 @@ class Entity(pygame.sprite.DirtySprite):
         self.atkspd = 0
         self.speed = 0.4
 
-        self.xp = 0
-        self.xp_req = 100
-        self.level = 1
-
         self.tickers = {}
         self.tickers["move"] = 0
         self.tickers["char_anim"] = 0
         self.tickers["attack"] = 0
 
-        self.sightrange = 6
+        self.sightrange = 16
         self.light = 3
 
         self.set_char(char)

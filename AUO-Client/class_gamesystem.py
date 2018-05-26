@@ -1,4 +1,4 @@
-from class_entity import *
+from class_player import *
 
 from screen_menu_main import ScreenMenuMain
 from screen_menu_continuechar import ScreenMenuContinuechar
@@ -8,6 +8,7 @@ from screen_menu_connect import ScreenMenuConnect
 from screen_game import ScreenGame
 
 from types import MethodType
+from random import randint
 from Mastermind import *
 import pygame
 
@@ -16,7 +17,7 @@ class GameSystem(object):
         self.conn = MastermindClientUDP(10.0, 10.0)
         self.conn_ip = ""
         self.conn_port = ""
-        self.player = Entity(-1, (1,1), 256)
+        self.player = Player(-1, (1,1), 256)
 
         self.title_font = pygame.font.Font("assets/fonts/Dimitriswank.TTF", 96)
         self.title_col = [255, 255, 255]

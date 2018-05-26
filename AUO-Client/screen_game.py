@@ -1,5 +1,5 @@
 from class_screen import Screen
-from class_entity import Entity
+from class_player import *
 from patcher import *
 
 from class_map import GameMap
@@ -348,7 +348,7 @@ class ScreenGame(Screen):
                 self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
 
             elif server_data[0] == "new_pl": # Create new player
-                newplayer = Entity(int(server_data[1]), self.map.spawnpos, int(server_data[2]))
+                newplayer = Player(int(server_data[1]), self.map.spawnpos, int(server_data[2]))
                 self.playerlist[int(server_data[1])] = newplayer
 
             elif server_data[0] == "remove_pl": # Remove player
@@ -365,19 +365,20 @@ class ScreenGame(Screen):
                 except KeyError: pass
 
             elif server_data[0] == "setstat_pl": # Update player stat
-                try:
-                    value = server_data[3]
-                    try:
-                        value = int(value)
+                pl_id = int(server_data[1])
+                values = server_data[2:]
+                for val in values:
+                    val = val.split('/')
+                    try: val[1] = int(val[1])
                     except ValueError:
-                        pass
+                        try: val[1] = float(val[1])
+                        except ValueError: pass
 
-                    pl_id = int(server_data[1])
                     if pl_id == -1:
-                        self.player.set_stat(server_data[2], value)
+                        self.player.set_stat(val[0], val[1])
                     else:
-                        self.playerlist[pl_id].set_stat(server_data[2], value)
-                except KeyError: pass
+                        try: self.playerlist[pl_id].set_stat(val[0], val[1])
+                        except KeyError: pass
 
             elif server_data[0] == "pong": # Keeps connection alive
                 self.ping_timeout = 0
