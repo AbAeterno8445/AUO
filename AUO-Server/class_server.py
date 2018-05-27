@@ -52,7 +52,7 @@ class Server(MastermindServerUDP):
         with open("data/accounts", "r") as acc_file:
             for line in acc_file:
                 line = line.strip().split(':')
-                if (line[0] == name and line[1] == pw) or (line[0] == name and not pw):
+                if (line[0] == name and line[1] == pw) or (line[0] == name and pw == None):
                     return True
         return False
 
