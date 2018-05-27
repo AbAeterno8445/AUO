@@ -5,12 +5,11 @@ class Client(object):
 
         self.acc_name = ""
         self.acc_pw = ""
-        self.acc_characters = []
 
         self.current_map = None
 
         # Server-side stats shared with client
-        self.mult_stats = ["char", "maxhp", "hp", "atk", "atkspd", "speed", "xp", "level", "sightrange", "light"]
+        self.mult_stats = ["name", "char", "maxhp", "hp", "atk", "atkspd", "speed", "xp", "level", "sightrange", "light"]
 
         self.name = ""
         self.x = 0

@@ -39,12 +39,17 @@ class Server(MastermindServerUDP):
     def callback_disconnect_client(self, conn):
         if conn in self.client_list:
             disc_client = self.client_list[conn]
+            disc_client_name = disc_client.name
 
             print("Lost connection to client " + str(disc_client.id))
             if disc_client.current_map:
                 disc_client.current_map.player_leave(disc_client)
             self.id_table.remove(disc_client.id)
             self.client_list.pop(conn, None)
+
+            for cl in self.client_list:
+                if disc_client_name:
+                    self.callback_client_send(cl, "msg|" + disc_client_name + " has left the game.")
 
         return super(MastermindServerUDP, self).callback_disconnect_client(conn)
 
@@ -151,11 +156,16 @@ class Server(MastermindServerUDP):
 
         elif data[0] == "join": # Player joins
             # Assign id to joining player
-            self.callback_client_send(conn, "assign_id|" + str(inc_client.id))
+            self.callback_client_send(conn, "setstat_pl|-1|id/" + str(inc_client.id))
 
             inc_client.current_map = self.map_list["town"]
             self.callback_client_send(conn, "loadmap|town|spawn")
             inc_client.current_map.player_enter(inc_client)
+
+            for cl in self.client_list:
+                if not cl == inc_client.conn:
+                    self.callback_client_send(cl, "msg|" + inc_client.name + " has joined the game.")
+                    self.callback_client_send(inc_client.conn, "setstat_pl|" + str(self.client_list[cl].id) + self.client_statsmsg(self.client_list[cl]))
 
             self.client_update_stats(inc_client, inc_client.get_shared_stats())
 
@@ -174,6 +184,21 @@ class Server(MastermindServerUDP):
                 if cl is not conn:
                     self.callback_client_send(cl, "update_pl|" + str(self.client_list[conn].id) + "|" + str(data[1]) + "|" + str(data[2]))
 
+        elif data[0] == "pl_chat": # Player chat
+            if data[1].startswith("/"): # Commands
+                cmd_success = False
+                cmd_check = data[1].split(" ", 1)
+                if len(cmd_check) > 1:
+                    if cmd_check[0] == "/g": # Global chat
+                        for cl in self.client_list:
+                            self.callback_client_send(cl, "pl_chat|" + inc_client.name + "|global|" + cmd_check[1])
+                            cmd_success = True
+
+                if not cmd_success:
+                    self.callback_client_send(inc_client.conn, "msg|Unknown command.")
+            elif inc_client.current_map:
+                inc_client.current_map.player_localchat(inc_client, data[1])
+
         elif data[0] == "ping": # Maintain connection alive
             self.callback_client_send(conn, "pong")
 
@@ -185,14 +210,17 @@ class Server(MastermindServerUDP):
         for s in stats:
             setattr(client, s[0], s[1])
         if update:
-            self.update_stat(client, stats)
+            self.client_update_stats(client, stats)
 
     # Update clients with server-side stats
-    def client_update_stats(self, client, stats):
-        stat_upd_msg = ""
-        for s in stats:
-            stat_upd_msg += "|" + s[0] + "/" + str(s[1])
-
-        self.callback_client_send(client.conn, "setstat_pl|-1" + stat_upd_msg)
+    def client_update_stats(self, client, stats, upd_self=True):
+        if upd_self:
+            self.callback_client_send(client.conn, "setstat_pl|-1" + self.client_statsmsg(client))
         if client.current_map:
-            client.current_map.send_all("setstat_pl|" + str(client.id) + stat_upd_msg, client)
+            client.current_map.send_all("setstat_pl|" + str(client.id) + self.client_statsmsg(client), client)
+
+    def client_statsmsg(self, client):
+        stat_upd_msg = ""
+        for s in client.get_shared_stats():
+            stat_upd_msg += "|" + s[0] + "/" + str(s[1])
+        return stat_upd_msg

@@ -25,6 +25,18 @@ class GameMap(object):
                 self.server.callback_client_send(client.conn, "remove_pl|" + str(cl.id))
         self.client_list.remove(client)
 
+    # Sends a message from chatter player to everyone nearby (8 tile radius)
+    def player_localchat(self, chatter, msg):
+        if not chatter in self.client_list:
+            return
+
+        self.server.callback_client_send(chatter.conn, "pl_chat|" + chatter.name + "|local|" + msg)
+        for cl in self.client_list:
+            if not cl == chatter:
+                dist = abs(chatter.x - cl.x) + abs(chatter.y - cl.y)
+                if dist <= 8:
+                    self.server.callback_client_send(cl.conn, "pl_chat|" + chatter.name + "|local|" + msg)
+
     def send_all(self, data, exc=None):
         for cl in self.client_list:
             if cl == exc:

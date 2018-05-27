@@ -124,9 +124,9 @@ class GameSystem(object):
             if not newscreen:
                 done = True
             elif type(newscreen) is str:
+                self.screens[newscreen].reset()
                 self.screen_transitions.transfer(self.screens[self.current_screen], self.screens[newscreen])
                 self.current_screen = newscreen
-                self.screens[self.current_screen].reset()
 
         if self.conn.is_connected():
             self.conn.send("disconnect")

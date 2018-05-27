@@ -1,4 +1,5 @@
 from class_entity import Entity
+from math import floor
 
 class Player(Entity):
     def __init__(self, id, pos, char):
@@ -11,7 +12,7 @@ class Player(Entity):
 
     def calc_xp_req(self):
         lv = self.level + 1
-        self.xp_req = (lv ** 2 + lv) / 2 * 100 - (lv * 100)
+        self.xp_req = int(floor((lv ** 2 + lv) / 2 * 100 - (lv * 100)))
 
     def set_stat(self, stat, value):
         Entity.set_stat(self, stat, value)
