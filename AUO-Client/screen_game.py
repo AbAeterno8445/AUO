@@ -298,18 +298,21 @@ class ScreenGame(Screen):
                          (self.gui_stats_x, 0, self.gui_stats_width, self.display.get_height()))
         if stats:
             area_stats_text = []
-            # Health
-            area_stats_text.append(
-                [self.gui_stats_x + 4, 0, "Health: " + str(self.player.hp) + " / " + str(self.player.maxhp)])
+            # Name
+            self.gui.draw_text((self.gui_stats_x + self.gui_stats_width / 2, 12), self.gui_font, self.player.name, halign=1, valign=1)
             area_stats_text.append("\n")
-            self.gui.draw_healthbar(self.player.hp, self.player.maxhp, self.gui_stats_x + 4, 14,
+            area_stats_text.append("\n")
+            # Health
+            area_stats_text.append([self.gui_stats_x + 4, 0, "Health: " + str(self.player.hp) + " / " + str(self.player.maxhp)])
+            area_stats_text.append("\n")
+            self.gui.draw_healthbar(self.player.hp, self.player.maxhp, self.gui_stats_x + 4, 46,
                                     self.gui_stats_width - 8, 6, (50, 220, 50), (10, 10, 10))
             # Exp / Level
             area_stats_text.append([self.gui_stats_x + 4, 0, "Level: " + str(self.player.level)])
             area_stats_text.append(
                 [self.gui_stats_x + 4, 0, "Exp: " + str(self.player.xp) + " / " + str(self.player.xp_req)])
             area_stats_text.append("\n")
-            self.gui.draw_healthbar(self.player.xp, self.player.xp_req, self.gui_stats_x + 4, 62,
+            self.gui.draw_healthbar(self.player.xp, self.player.xp_req, self.gui_stats_x + 4, 94,
                                     self.gui_stats_width - 8, 6, (102, 0, 255), (10, 10, 10))
 
             # Attack / attack speed
