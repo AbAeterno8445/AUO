@@ -468,6 +468,7 @@ class ScreenGame(Screen):
         return Screen.loop(self)
 
     def player_loop(self):
+        self.keys_held = pygame.key.get_pressed()
         # Player movement
         mv_axis = [0, 0]
         if self.keys_held[pygame.K_KP6] or self.keys_held[pygame.K_KP9] or self.keys_held[pygame.K_KP3]:  # right
@@ -480,7 +481,7 @@ class ScreenGame(Screen):
             mv_axis[1] = 1
 
         if not (mv_axis[0] == 0 and mv_axis[1] == 0):
-            if self.player.move_axis(mv_axis, self.map):
+            if self.move_entity(self.player, mv_axis):
                 self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
 
         # Update player's map visibility
@@ -488,6 +489,22 @@ class ScreenGame(Screen):
             self.update_camera_plpos()
             self.updatelayers = True
             self.player.moved = False
+
+    def tile_isfree(self, x, y):
+        if not self.map.freetile(x, y):
+            return False
+
+        for pl in self.playerlist:
+            if pl.x == x and pl.y == y:
+                return False
+
+        return True
+
+    def move_entity(self, ent, axes):
+        if self.tile_isfree(ent.x + axes[0], ent.y + axes[1]):
+            if ent.move_axis(axes):
+                return True
+        return False
 
     def server_listener(self):
         server_data = self.conn.receive(False)

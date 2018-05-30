@@ -178,11 +178,7 @@ class Server(MastermindServerUDP):
             inc_client.current_map.player_enter(inc_client)
 
         elif data[0] == "pl_move": # Player movement
-            inc_client.x = int(data[1])
-            inc_client.y = int(data[2])
-            for cl in self.client_list:
-                if cl is not conn:
-                    self.callback_client_send(cl, "update_pl|" + str(self.client_list[conn].id) + "|" + str(data[1]) + "|" + str(data[2]))
+            self.client_setposition(inc_client.conn, int(data[1]), int(data[2]))
 
         elif data[0] == "pl_chat": # Player chat
             if data[1].startswith("/"): # Commands
@@ -239,6 +235,13 @@ class Server(MastermindServerUDP):
 
     def client_send_message(self, cl_sock, message, color=(255,255,255)):
         self.callback_client_send(cl_sock, "msg|" + message + "|" + str(color[0]) + "," + str(color[1]) + "," + str(color[2]))
+
+    def client_setposition(self, cl_sock, x, y):
+        inc_client = self.client_list[cl_sock]
+        inc_client.x = x
+        inc_client.y = y
+        if inc_client.current_map:
+            inc_client.current_map.send_all("update_pl|" + str(inc_client.id) + "|" + str(x) + "|" + str(y), inc_client)
 
     # Changes server-side stats then updates
     # Stats is a list of sub-lists [(<stat name>, <new value>), ...]

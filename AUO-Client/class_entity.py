@@ -62,16 +62,13 @@ class Entity(pygame.sprite.DirtySprite):
         self.image = self.ogimage.subsurface(((char_tile % 16) * 32 + (char_tile % 16) * 2, floor(char_tile / 16) * 32 + floor(char_tile / 16) * 2, 32, 32))
         self.rect = self.image.get_rect()
 
-    def move_axis(self, axes, map):
-        if self.tickers["move"][0] >= self.tickers["move"][1]:
-            newpos_x = self.x + axes[0]
-            newpos_y = self.y + axes[1]
-            if map.freetile(newpos_x, newpos_y):
-                self.tickers["move"][0] = 0
-                self.x = newpos_x
-                self.y = newpos_y
-                self.moved = True
-                return True
+    def move_axis(self, axes, skip=False):
+        if self.tickers["move"][0] >= self.tickers["move"][1] or skip:
+            self.tickers["move"][0] = 0
+            self.x = self.x + axes[0]
+            self.y = self.y + axes[1]
+            self.moved = True
+            return True
         return False
 
     def set_pos(self, px, py):
