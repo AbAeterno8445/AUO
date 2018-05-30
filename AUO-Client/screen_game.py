@@ -91,7 +91,7 @@ class ScreenGame(Screen):
         self.gui_stats_width = floor(new_w * 0.2)
         self.gui_stats_x = new_w - self.gui_stats_width
         # Adjust chatlog
-        self.chatlog.set_line_width(floor(self.gui_stats_x / 9))
+        self.chatlog.set_line_width(floor(self.gui_stats_x / 10))
         self.chatlog.lines = max(4, ceil(floor(new_h * 0.15) / 16))
         self.chatlog.line_size = 16
         self.chatlog.surface_resize(self.gui_stats_x)
