@@ -164,7 +164,7 @@ class ScreenGame(Screen):
 
                             self.conn.send("join")
 
-            except ConnectionResetError:
+            except (ConnectionResetError, ConnectionRefusedError, ConnectionAbortedError, ConnectionError):
                 conn_success = False
                 self.chat_log("Could not connect to server. Connection reset.")
 
