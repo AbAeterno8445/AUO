@@ -49,7 +49,7 @@ class Server(MastermindServerUDP):
 
             for cl in self.client_list:
                 if disc_client_name:
-                    self.callback_client_send(cl, "msg|" + disc_client_name + " has left the game.")
+                    self.client_send_message(cl, disc_client_name + " has left the game.", (100,100,100))
 
         return super(MastermindServerUDP, self).callback_disconnect_client(conn)
 
@@ -164,7 +164,7 @@ class Server(MastermindServerUDP):
 
             for cl in self.client_list:
                 if not cl == inc_client.conn:
-                    self.callback_client_send(cl, "msg|" + inc_client.name + " has joined the game.")
+                    self.client_send_message(cl, inc_client.name + " has joined the game.", (100,100,100))
                     self.callback_client_send(inc_client.conn, "setstat_pl|" + str(self.client_list[cl].id) + self.client_statsmsg(self.client_list[cl]))
 
             self.client_update_stats(inc_client, inc_client.get_shared_stats())
@@ -187,22 +187,58 @@ class Server(MastermindServerUDP):
         elif data[0] == "pl_chat": # Player chat
             if data[1].startswith("/"): # Commands
                 cmd_success = False
-                cmd_check = data[1].split(" ", 1)
-                if len(cmd_check) > 1:
-                    if cmd_check[0] == "/g": # Global chat
+                cmd_sub = data[1].split(" ")
+
+                try:
+                    if cmd_sub[0] == "/who":  # Check who's online
+                        cmd_success = True
+                        onlinepl_msg = ""
                         for cl in self.client_list:
-                            self.callback_client_send(cl, "pl_chat|" + inc_client.name + "|global|" + cmd_check[1])
-                            cmd_success = True
+                            if self.client_list[cl].name:
+                                onlinepl_msg += self.client_list[cl].name + " "
+                        onlinepl_msg = onlinepl_msg.strip().replace(" ", ", ")
+                        self.client_send_message(inc_client.conn, "Online players: " + onlinepl_msg)
+
+                    elif cmd_sub[0] == "/g": # Global chat
+                        cmd_success = True
+                        for cl in self.client_list:
+                            self.callback_client_send(cl, "pl_chat|" + inc_client.name + "|global|" + " ".join(cmd_sub[1:]))
+
+                    elif cmd_sub[0] == "/msg": # Whisper message
+                        cmd_success = True
+                        if len(cmd_sub) > 2:
+                            whisp_plname = cmd_sub[1].replace('_', ' ')
+                            whisp_msg = " ".join(cmd_sub[2:])
+
+                            if whisp_plname == inc_client.name:
+                                self.client_send_message(inc_client.conn, "You mutter to yourself: " + whisp_msg, (102,102,255))
+                            else:
+                                pl_found = False
+                                for cl in self.client_list:
+                                    if self.client_list[cl].name == whisp_plname and not cl == inc_client.conn:
+                                        pl_found = True
+                                        self.client_send_message(inc_client.conn, "Sent message to " + whisp_plname + ": " + whisp_msg, (102,102,255))
+                                        self.callback_client_send(self.client_list[cl].conn, "pl_chat|" + inc_client.name + "|whisper|" + whisp_msg)
+                                        break
+                                if not pl_found:
+                                    self.client_send_message(inc_client.conn, "Player " + whisp_plname + " not found.", (220,50,50))
+                        else:
+                            self.client_send_message(inc_client.conn, "Usage: /msg <player name> <message>", (220,50,50))
+                except IndexError:
+                    cmd_success = False
 
                 if not cmd_success:
-                    self.callback_client_send(inc_client.conn, "msg|Unknown command.")
-            elif inc_client.current_map:
+                    self.client_send_message(inc_client.conn, "Unknown command.", (220,50,50))
+            elif inc_client.current_map: # Local chat
                 inc_client.current_map.player_localchat(inc_client, data[1])
 
         elif data[0] == "ping": # Maintain connection alive
             self.callback_client_send(conn, "pong")
 
         return super(MastermindServerUDP, self).callback_client_handle(conn, data)
+
+    def client_send_message(self, cl_sock, message, color=(255,255,255)):
+        self.callback_client_send(cl_sock, "msg|" + message + "|" + str(color[0]) + "," + str(color[1]) + "," + str(color[2]))
 
     # Changes server-side stats then updates
     # Stats is a list of sub-lists [(<stat name>, <new value>), ...]

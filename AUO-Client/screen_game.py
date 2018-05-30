@@ -518,7 +518,8 @@ class ScreenGame(Screen):
                     self.chat_log(plname + " [whisper]: " + server_data[3], (153,102,255))
 
             elif server_data[0] == "msg": # Basic message from server
-                self.chat_log(server_data[1])
+                col = [int(c) for c in server_data[2].split(',')]
+                self.chat_log(server_data[1], col)
 
             elif server_data[0] == "setstat_pl": # Update player stat
                 pl_id = int(server_data[1])
