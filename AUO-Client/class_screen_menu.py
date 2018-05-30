@@ -107,7 +107,7 @@ class ScreenMenu(Screen):
         backg_y = tmp_height_min - 24
         self.backg_rect = (backg_x, backg_y, backg_width, backg_height)
 
-    def loop(self):
+    def loop(self, framerate):
         for event in pygame.event.get():
             if not self.handle_event(event):
                 return False
@@ -124,7 +124,7 @@ class ScreenMenu(Screen):
 
             button.render(self.font, self.display, tmp_color)
 
-        return Screen.loop(self)
+        return Screen.loop(self, framerate)
 
 class MenuButton(object):
     def __init__(self, action, text, input=False):

@@ -47,9 +47,13 @@ class ScreenGame(Screen):
         self.acc_name = ""
         self.acc_pw = ""
 
-        self.ping_ticker = 300  # Ping (keeps connection alive)
+        self.fps_avg = 0
+        # Timers
+        self.tickers = {
+            "ping": [0, 300],   # Ping (keeps connection alive)
+            "anim": [0, 30]     # Tile animations
+        }
         self.ping_timeout = 0
-        self.anim_ticker = 30  # Tile animations
 
         # Map drawing layers
         self.updatelayers = False
@@ -391,7 +395,7 @@ class ScreenGame(Screen):
 
         return Screen.handle_event(self, event)
 
-    def loop(self):
+    def loop(self, framerate):
         if not self.chatting:
             self.keys_held = pygame.key.get_pressed()
 
@@ -413,6 +417,9 @@ class ScreenGame(Screen):
             self.return_mode = 1
             return True
 
+        self.tickers["ping"][1] = 300 * framerate / 60
+        self.tickers["anim"][1] = 30 * framerate / 60
+
         self.server_listener()
 
         self.player_loop()
@@ -420,11 +427,11 @@ class ScreenGame(Screen):
         self.entity_surface.fill((255,0,255))
 
         # Tile animations
-        if self.anim_ticker > 0:
-            self.anim_ticker -= 1
+        if self.tickers["anim"][0] < self.tickers["anim"][1]:
+            self.tickers["anim"][0] += 1
         else:
             self.map.anim_tiles()
-            self.anim_ticker = 30
+            self.tickers["anim"][0] = 0
 
         if self.updatelayers:
             self.update_drawlayers()
@@ -437,15 +444,15 @@ class ScreenGame(Screen):
             # Draw game surface (tiles)
             self.display.blit(self.game_surface, self.camera_pos)
             # Draw sprites
-            self.spritelist.update()
+            self.spritelist.update(framerate)
             self.spritelist.draw(self.entity_surface)
             self.display.blit(self.entity_surface, self.camera_pos)
         # Draw GUI
         self.update_drawGUI(self.map.loaded)
 
         # Keep connection alive
-        if self.ping_ticker > 0:
-            self.ping_ticker -= 1
+        if self.tickers["ping"][0] < self.tickers["ping"][1]:
+            self.tickers["ping"][0] += 1
         else:
             self.ping_timeout += 1
             if self.ping_timeout >= 2:
@@ -456,7 +463,7 @@ class ScreenGame(Screen):
             else:
                 self.conn.send("ping")
 
-            self.ping_ticker = 300
+            self.tickers["ping"][0] = 0
 
         return Screen.loop(self)
 

@@ -39,8 +39,8 @@ class ScreenMenuMain(ScreenMenu):
         else:
             ScreenMenu.button_press(self)
 
-    def loop(self):
+    def loop(self, framerate):
         if self.quit:
             return False
 
-        return ScreenMenu.loop(self)
+        return ScreenMenu.loop(self, framerate)

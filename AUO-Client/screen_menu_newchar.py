@@ -100,8 +100,8 @@ class ScreenMenuNewchar(ScreenMenu):
 
         return ScreenMenu.handle_event(self, event)
 
-    def loop(self):
-        orig_loop = ScreenMenu.loop(self)
+    def loop(self, framerate):
+        orig_loop = ScreenMenu.loop(self, framerate)
 
         display_centerx = self.display.get_width() / 2
         display_centery = self.display.get_height() / 2

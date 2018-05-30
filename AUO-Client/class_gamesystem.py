@@ -104,6 +104,9 @@ class GameSystem(object):
         menu_background = pygame.image.load("assets/titlebg.png").convert_alpha()
         menu_background = pygame.transform.scale(menu_background, self.display.get_size())
 
+        # Frames per second calculation
+        fps_avg = 60
+
         while not done:
             self.display.fill((0, 0, 0))
 
@@ -117,9 +120,13 @@ class GameSystem(object):
                 self.display.blit(tmp_title, tmp_title_rect)
 
             # Process screen loop. If it returns false, end the application. If it returns a string, change to screen with that string as name
-            newscreen = self.screens[self.current_screen].loop()
+            fps_avg = self.clock.get_fps()
+            if not fps_avg:
+                fps_avg = 60
+            newscreen = self.screens[self.current_screen].loop(fps_avg)
             pygame.display.update()
             self.clock.tick(60)
+
 
             if not newscreen:
                 done = True

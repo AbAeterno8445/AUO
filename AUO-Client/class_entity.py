@@ -18,6 +18,7 @@ class Entity(pygame.sprite.DirtySprite):
     def __init__(self, id, pos, char):
         pygame.sprite.DirtySprite.__init__(self)
         self.dirty = 2
+        self.image = pygame.Surface((32,32))
 
         self.id = id
         self.name = ""
@@ -29,10 +30,11 @@ class Entity(pygame.sprite.DirtySprite):
         self.atkspd = 0
         self.speed = 0.4
 
-        self.tickers = {}
-        self.tickers["move"] = 0
-        self.tickers["char_anim"] = 0
-        self.tickers["attack"] = 0
+        self.tickers = {
+            "move": [0, 0],
+            "char_anim": [0, 0],
+            "attack": [0, 0]
+        }
 
         self.sightrange = 16
         self.light = 3
@@ -61,11 +63,11 @@ class Entity(pygame.sprite.DirtySprite):
         self.rect = self.image.get_rect()
 
     def move_axis(self, axes, map):
-        if self.tickers["move"] <= 0:
+        if self.tickers["move"][0] >= self.tickers["move"][1]:
             newpos_x = self.x + axes[0]
             newpos_y = self.y + axes[1]
             if map.freetile(newpos_x, newpos_y):
-                self.tickers["move"] = floor(self.speed * 60)
+                self.tickers["move"][0] = 0
                 self.x = newpos_x
                 self.y = newpos_y
                 self.moved = True
@@ -77,18 +79,29 @@ class Entity(pygame.sprite.DirtySprite):
         self.moved = True
         self.update()
 
-    def update(self):
+    def update(self, framerate=60):
         self.rect.x = self.x * 32
         self.rect.y = self.y * 32
 
-        # Update tickers
-        for ticker,tick_val in self.tickers.items():
-            if tick_val > 0:
-                self.tickers[ticker] = max(0, tick_val - 1)
+        # Set tickers
+        for ticker, tick_val in self.tickers.items():
+            if ticker == "char_anim":
+                tick_val[1] = 20 * framerate / 60
+            elif ticker == "move":
+                tick_val[1] = floor(self.speed * framerate)
+            elif ticker == "attack":
+                tick_val[1] = floor(self.atkspd * framerate)
 
-        # Character animation
-        if self.tickers["char_anim"] == 0:
-            char_rand = self.char % 256 + randint(0, self.char_frames - 1)
-            self.image = self.ogimage.subsurface(((char_rand % 16) * 32 + (char_rand % 16) * 2,
-                                                  floor(char_rand / 16) * 32 + floor(char_rand / 16) * 2, 32, 32))
-            self.tickers["char_anim"] = 20
+        # Update tickers
+        for ticker, tick_val in self.tickers.items():
+            if tick_val[0] < tick_val[1]:
+                tick_val[0] += 1
+
+            # Ticker expiration
+            if tick_val[0] > tick_val[1]:
+                tick_val[0] = 0
+                if ticker == "char_anim":  # Character animation
+                    char_rand = self.char % 256 + randint(0, self.char_frames - 1)
+                    self.image = self.ogimage.subsurface(((char_rand % 16) * 32 + (char_rand % 16) * 2,
+                                                          floor(char_rand / 16) * 32 + floor(char_rand / 16) * 2,
+                                                          32, 32))

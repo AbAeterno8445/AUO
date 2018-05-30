@@ -17,7 +17,7 @@ class Screen(object):
         self.newscreen = ""
         pass
 
-    def loop(self):
+    def loop(self, framerate=60):
         if self.newscreen:
             return self.newscreen
 
