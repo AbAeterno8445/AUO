@@ -7,6 +7,8 @@ class ChatLog(object):
         self.lines = 0
         self.line_size = 0
 
+        self.scrolling = 0
+
         self.font = font
 
         self.surface = pygame.Surface((1,1))
@@ -25,13 +27,16 @@ class ChatLog(object):
             height = self.lines * self.line_size + 26
         self.surface = pygame.transform.scale(self.surface, (width, height))
 
+    def scroll(self, pad):
+        self.scrolling = max(0, min(len(self.msg_log) - self.lines, self.scrolling + pad))
+
     def draw_chat(self):
         self.surface.fill(self.surface_col)
 
         chat_drawn = 0
         chat_drawn_sub = 0
         while chat_drawn < self.lines and chat_drawn < len(self.msg_log):
-            msg_line, msg_color = self.msg_log[-1-chat_drawn]
+            msg_line, msg_color = self.msg_log[-1 - chat_drawn - self.scrolling]
 
             for msg_wrap in reversed(self.txt_wrapper.wrap(msg_line.strip())):
                 if chat_drawn > self.lines:

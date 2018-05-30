@@ -354,7 +354,7 @@ class ScreenGame(Screen):
                     if event.key == pygame.K_q:
                         self.return_mode = 2
                 else:
-                    if event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_SPACE:  # Space - transfer level
                         newlevel_data = self.map.transfer_level(self.player.x, self.player.y)
                         if newlevel_data:
                             self.conn.send("xfer_map|" + newlevel_data[1])
@@ -362,7 +362,12 @@ class ScreenGame(Screen):
                             self.player.set_pos(int(newlevel_data[2]), int(newlevel_data[3]))
                             self.update_camera_plpos()
 
-                    elif event.key == pygame.K_RETURN:
+                    elif event.key == pygame.K_PAGEUP:  # PageUp - scroll chatlog
+                        self.chatlog.scroll(4)
+                    elif event.key == pygame.K_PAGEDOWN:  # PageDown - scroll chatlog
+                        self.chatlog.scroll(-4)
+
+                    elif event.key == pygame.K_RETURN:  # Enter - chat/return to menu
                         if self.return_mode == 0:
                             self.chat_toggle(True)
                         else:
