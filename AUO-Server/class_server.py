@@ -80,11 +80,15 @@ class Server(MastermindServerUDP):
 
         data = data.split('|')
         if data[0] == "filedl_check": # Check for outdated files from client
-            try:
-                fpath = next(iter(inc_client.filedl_list))
+            if len(data) < 2:
+                try:
+                    fpath = next(iter(inc_client.filedl_list))
+                    self.callback_client_send(conn, "filedl_begin|" + fpath + "|" + str(os.path.getsize(fpath)))
+                except StopIteration:
+                    self.callback_client_send(conn, "filedl_end")
+            else:
+                fpath = data[1]
                 self.callback_client_send(conn, "filedl_begin|" + fpath + "|" + str(os.path.getsize(fpath)))
-            except StopIteration:
-                self.callback_client_send(conn, "filedl_end")
 
         elif data[0] == "filedl_ok": # Outdated file in client, send current one
             inc_client.filedl_current = open(data[1], "r")
@@ -96,10 +100,12 @@ class Server(MastermindServerUDP):
             else:
                 self.callback_client_send(conn, "filedl_done|" + data[1])
                 inc_client.filedl_current.close()
-                inc_client.filedl_list.remove(data[1])
+                if data[1] in inc_client.filedl_list:
+                    inc_client.filedl_list.remove(data[1])
 
         elif data[0] == "filedl_uptodate": # File is updated, keep iterating
-            inc_client.filedl_list.remove(data[1])
+            if data[1] in inc_client.filedl_list:
+                inc_client.filedl_list.remove(data[1])
 
         elif data[0] == "acc_create": # Client account creation
             cl_acc_name = data[1]
@@ -156,7 +162,7 @@ class Server(MastermindServerUDP):
 
         elif data[0] == "join": # Player joins
             # Assign id to joining player
-            self.callback_client_send(conn, "setstat_pl|-1|id/" + str(inc_client.id))
+            self.client_update_stats(inc_client)
 
             inc_client.current_map = self.map_list["town"]
             self.callback_client_send(conn, "loadmap|town|spawn")
@@ -166,8 +172,6 @@ class Server(MastermindServerUDP):
                 if not cl == inc_client.conn:
                     self.client_send_message(cl, inc_client.name + " has joined the game.", (100,100,100))
                     self.callback_client_send(inc_client.conn, "setstat_pl|" + str(self.client_list[cl].id) + self.client_statsmsg(self.client_list[cl]))
-
-            self.client_update_stats(inc_client, inc_client.get_shared_stats())
 
         elif data[0] == "disconnect": # Player disconnection
             self.callback_disconnect_client(conn)
@@ -252,7 +256,7 @@ class Server(MastermindServerUDP):
             self.client_update_stats(client, stats)
 
     # Update clients with server-side stats
-    def client_update_stats(self, client, stats, upd_self=True):
+    def client_update_stats(self, client, upd_self=True):
         if upd_self:
             self.callback_client_send(client.conn, "setstat_pl|-1" + self.client_statsmsg(client))
         if client.current_map:

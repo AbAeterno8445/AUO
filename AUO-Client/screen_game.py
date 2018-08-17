@@ -161,11 +161,6 @@ class ScreenGame(Screen):
                                 self.chat_log("Loaded character \"" + self.player.name + "\".")
 
                         if conn_success:
-                            patcher = Patcher(self.conn)
-                            self.chat_log("Running patcher...")
-                            patcher.check_uptodate()
-                            self.chat_log("Patching process done.")
-
                             self.conn.send("join")
 
             except (ConnectionResetError, ConnectionRefusedError, ConnectionAbortedError, ConnectionError):
@@ -197,6 +192,12 @@ class ScreenGame(Screen):
 
     def load_map(self, mapname):
         map_path = "data/maps/" + mapname
+
+        self.map.loaded = False
+        # Update map to server state
+        patcher = Patcher(self.conn)
+        patcher.check_uptodate(map_path)
+
         map_tiles = self.map.load(map_path)
 
         self.updatesize_tilesurface()
@@ -509,7 +510,6 @@ class ScreenGame(Screen):
     def server_listener(self):
         server_data = self.conn.receive(False)
         if server_data:
-            #print(server_data)
             server_data = server_data.split('|')
             if server_data[0] == "loadmap": # Map loading / set player pos
                 self.load_map(server_data[1])
