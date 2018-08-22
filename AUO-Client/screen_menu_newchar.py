@@ -75,7 +75,7 @@ class ScreenMenuNewchar(ScreenMenu):
         self.update_backg_size()
 
     def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and not self.inputting:
             # Avatar creation, switch chosen avatar
             av_switch = 0
             if event.key == pygame.K_a or event.key == pygame.K_LEFT:

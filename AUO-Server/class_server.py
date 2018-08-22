@@ -1,4 +1,5 @@
-import select, socket, sys, traceback, os, base64
+import select, socket, sys, traceback, os, base64, pymysql
+from class_DBConnection import DBConnection
 from class_client import Client
 from class_map import GameMap
 from random import randint
@@ -11,6 +12,8 @@ class Server(MastermindServerUDP):
 
     def __init__(self):
         MastermindServerUDP.__init__(self, time_connection_timeout=10.0)
+
+        self.dbconn = DBConnection("AUODB", "127.0.0.1")
 
         for i, map in enumerate(os.listdir("data/maps")):
             newmap = GameMap(self, i, map)
@@ -111,32 +114,45 @@ class Server(MastermindServerUDP):
             cl_acc_name = data[1]
             cl_acc_pw = data[2]
 
-            if self.account_exists(cl_acc_name):
+            try:
+                query_result = self.dbconn.run_query("CALL create_account(%s, %s);", (cl_acc_name, cl_acc_pw))
+                query_result = query_result.fetchone()['result']
+
+                if not query_result:  # Account creation failed
+                    self.callback_client_send(conn, "acc_create_fail")
+                else:  # Success
+                    with open("data/accounts", "a") as acc_file:
+                        acc_file.write(cl_acc_name + ":" + cl_acc_pw + "\n")
+                    self.callback_client_send(conn, "acc_create_ok")
+            except Exception as e:
+                print("An exception occured while creating account: {}".format(e))
                 self.callback_client_send(conn, "acc_create_fail")
-            else:
-                with open("data/accounts", "a") as acc_file:
-                    acc_file.write(cl_acc_name + ":" + cl_acc_pw + "\n")
-                self.callback_client_send(conn, "acc_create_ok")
 
         elif data[0] == "login": # Client account login
             cl_acc_name = data[1]
             cl_acc_pw = data[2]
 
-            if self.account_exists(cl_acc_name, cl_acc_pw):
-                logged = False
-                for cl in self.client_list:
-                    if self.client_list[cl].acc_name == cl_acc_name:
-                        logged = True
-                        break
+            try:
+                query_result = self.dbconn.run_query("SELECT verify_login(%s, %s)", (cl_acc_name, cl_acc_pw))
+                query_result = query_result.fetchone()
+                for res in query_result:
+                    if query_result[res] == 1:
+                        logged = False
+                        for cl in self.client_list:
+                            if self.client_list[cl].acc_name == cl_acc_name:
+                                logged = True
+                                break
 
-                if logged:
-                    self.callback_client_send(conn, "login_logged")
-                else:
-                    inc_client.acc_name = cl_acc_name
-                    inc_client.acc_pw = cl_acc_pw
-                    self.callback_client_send(conn, "login_ok")
-            else:
-                self.callback_client_send(conn, "login_noacc")
+                        if logged:
+                            self.callback_client_send(conn, "login_logged")
+                        else:
+                            inc_client.acc_name = cl_acc_name
+                            inc_client.acc_pw = cl_acc_pw
+                            self.callback_client_send(conn, "login_ok")
+                    else:
+                        self.callback_client_send(conn, "login_noacc")
+            except Exception as e:
+                print("An exception occurred while logging in an account: {}".format(e))
 
         elif data[0] == "newchar": # New player character
             if data[1] not in os.listdir("players"):
