@@ -51,13 +51,13 @@ class Tile(pygame.sprite.DirtySprite):
 
     # For animated tiles
     def anim(self, anim_state):
-        if self.tile_id >= 84 and self.tile_id <= 87: # Water
+        if 84 <= self.tile_id <= 87:  # Water
             self.set_tile(84 + anim_state, self.grayscaled)
 
-        if self.tile_id >= 88 and self.tile_id <= 91: # Deep water
+        if 88 <= self.tile_id <= 91:  # Deep water
             self.set_tile(88 + anim_state, self.grayscaled)
 
-        if self.tile_id >= 92 and self.tile_id <= 95: # Lava
+        if 92 <= self.tile_id <= 95:  # Lava
             self.set_tile(92 + anim_state, self.grayscaled)
 
     def get_wallshadow(self):

@@ -20,7 +20,13 @@ class DBConnection(object):
 
             return cursor
         except Exception as e:
-            print("Exception occurred while running query:{}".format(e))
+            print("Exception occurred while running query: {}".format(e))
         finally:
             db.close()
+        return None
+
+    def run_procedure(self, proc_string, proc_args):
+        res = self.run_query(proc_string, proc_args)
+        if res:
+            return res.fetchone()['result']
         return None

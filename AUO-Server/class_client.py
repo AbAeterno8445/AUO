@@ -1,3 +1,6 @@
+import json
+
+
 class Client(object):
     def __init__(self, id, conn):
         self.id = id
@@ -34,27 +37,20 @@ class Client(object):
                 l = l.strip('\n')
                 self.filedl_list.append(l)
 
+    # Returns list of shared stats [(stat1 name, value), (stat2 name, value), ...]
     def get_shared_stats(self):
         tmp_statlist = []
         for s in self.mult_stats:
             tmp_statlist.append((s, getattr(self, s, 0)))
         return tmp_statlist
 
-    def load_from_file(self):
-        if self.name:
-            with open("players/" + self.name, "r") as char_file:
-                for l in char_file:
-                    l = l.strip().split(':')
-                    if len(l) > 1:
-                        try: l[1] = int(l[1])
-                        except ValueError:
-                            try: l[1] = float(l[1])
-                            except ValueError: pass
+    def get_json_data(self):
+        json_dict = {}
+        for s in self.mult_stats:
+            json_dict[s] = getattr(self, s, 0)
+        return json.dumps(json_dict)
 
-                        setattr(self, l[0], l[1])
-
-    def save_to_file(self):
-        if self.name:
-            with open("players/" + self.name, "w") as char_file:
-                for s in self.mult_stats:
-                    char_file.write(s + ":" + str(getattr(self, s, 0)) + "\n")
+    def load_json_data(self, json_data):
+        json_dict = json.loads(json_data)
+        for d in json_dict:
+            setattr(self, d, json_dict[d])

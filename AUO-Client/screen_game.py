@@ -36,6 +36,7 @@ class ScreenGame(Screen):
         self.entity_surface.set_colorkey((255, 0, 255))
 
         self.player = None
+        self.map_updated = False
         self.map = GameMap()
 
         self.camera_pos = Vector2(0, 0)
@@ -195,13 +196,13 @@ class ScreenGame(Screen):
 
         self.map.loaded = False
         # Update map to server state
+        self.chat_log("Entering " + mapname + "...")
         patcher = Patcher(self.conn)
         patcher.check_uptodate(map_path)
 
         map_tiles = self.map.load(map_path)
 
         self.updatesize_tilesurface()
-        self.update_drawlayers()
 
     def update_drawlayers(self):
         self.game_surface.fill((0,0,0))
@@ -262,6 +263,17 @@ class ScreenGame(Screen):
 
                 except IndexError:
                     pass
+
+        # Render items
+        for item in self.map.item_list:
+            try:
+                tmp_maptile = self.map.map_data[item.y][item.x]
+
+                if tmp_maptile.light_visible:
+                    self.vis_tiles.add(item)
+                    self.vis_tiles.change_layer(item, 6)
+            except IndexError:
+                pass
 
     # Draws players over visible tiles
     def update_drawplayers(self):
@@ -409,6 +421,7 @@ class ScreenGame(Screen):
             return True
         elif self.return_mode == 2:
             if self.conn.is_connected():
+                self.map_updated = False
                 self.conn.send("disconnect")
                 self.conn.disconnect()
             return "menu_main"
@@ -422,6 +435,10 @@ class ScreenGame(Screen):
         self.tickers["anim"][1] = 30 * framerate / 60
 
         self.server_listener()
+
+        # Don't draw until map is in sync with server
+        if not self.map_updated:
+            return Screen.loop(self)
 
         self.player_loop()
 
@@ -518,7 +535,8 @@ class ScreenGame(Screen):
                 else:
                     pl_pos = server_data[2].split('/')
                     self.player.set_pos(int(pl_pos[0]), int(pl_pos[1]))
-                self.conn.send("pl_move|" + str(self.player.x) + "|" + str(self.player.y))
+                if not self.map_updated:
+                    self.map_updated = True
 
             elif server_data[0] == "new_pl": # Create new player
                 newplayer = Player(int(server_data[1]), self.map.spawnpos, int(server_data[2]))

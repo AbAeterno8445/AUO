@@ -115,8 +115,7 @@ class Server(MastermindServerUDP):
             cl_acc_pw = data[2]
 
             try:
-                query_result = self.dbconn.run_query("CALL create_account(%s, %s);", (cl_acc_name, cl_acc_pw))
-                query_result = query_result.fetchone()['result']
+                query_result = self.dbconn.run_procedure("CALL create_account(%s, %s);", (cl_acc_name, cl_acc_pw))
 
                 if not query_result:  # Account creation failed
                     self.callback_client_send(conn, "acc_create_fail")
@@ -133,7 +132,7 @@ class Server(MastermindServerUDP):
             cl_acc_pw = data[2]
 
             try:
-                query_result = self.dbconn.run_query("SELECT verify_login(%s, %s)", (cl_acc_name, cl_acc_pw))
+                query_result = self.dbconn.run_query("SELECT verify_login(%s, %s);", (cl_acc_name, cl_acc_pw))
                 query_result = query_result.fetchone()
                 for res in query_result:
                     if query_result[res] == 1:
@@ -155,10 +154,13 @@ class Server(MastermindServerUDP):
                 print("An exception occurred while logging in an account: {}".format(e))
 
         elif data[0] == "newchar": # New player character
-            if data[1] not in os.listdir("players"):
+            query_result = self.dbconn.run_procedure("CALL create_character(%s, %s);", (inc_client.acc_name, data[1]))
+            if data[1] not in os.listdir("players") and query_result == 1:
                 inc_client.name = data[1]
                 inc_client.char = data[2]
-                inc_client.save_to_file()
+
+                with open("players/" + inc_client.name, "w") as char_file:
+                    char_file.write(inc_client.get_json_data())
 
                 with open("data/account-chars", "a") as acc_file:
                     acc_file.write(inc_client.acc_name + ":" + inc_client.name + "\n")
@@ -168,9 +170,11 @@ class Server(MastermindServerUDP):
                 self.callback_client_send(conn, "newchar_fail")
 
         elif data[0] == "continuechar": # Continues with existing character
-            if self.character_in_account(inc_client.acc_name, data[1]):
+            if self.character_in_account(inc_client.acc_name, data[1]) and data[1] in os.listdir("players"):
                 inc_client.name = data[1]
-                inc_client.load_from_file()
+
+                with open("players/" + inc_client.name, "r") as char_file:
+                    inc_client.load_json_data(char_file.read())
 
                 self.callback_client_send(conn, "continuechar_ok")
             else:

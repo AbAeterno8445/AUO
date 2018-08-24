@@ -1,4 +1,5 @@
 from class_tile import Tile
+from class_item import Item
 import pygame, queue
 from math import floor
 
@@ -14,6 +15,11 @@ class GameMap(object):
         self.animated_tiles = []
         self.anim_state = 0
 
+        self.item_list = []
+        tmp_item = self.create_item_at(128, (3, 4))
+        tmp_item.block_movement = True
+        tmp_item.anim_frames = 3
+
         self.tile_texture = pygame.image.load("assets/tileset.png")
         self.tile_texture.set_colorkey((255,0,255))
         self.tile_texture_gs = pygame.image.load("assets/tileset_gs.png")
@@ -26,6 +32,9 @@ class GameMap(object):
         try:
             if self.map_data[y][x].has_flag("wall"):
                 return False
+            for item in self.item_list:
+                if item.block_movement and item.x == x and item.y == y:
+                    return False
             return True
         except:
             return False
@@ -35,6 +44,11 @@ class GameMap(object):
             return self.map_data[y][x].find_subflag("xfer")
         except:
             return False
+
+    def create_item_at(self, item_id, pos):
+        tmp_item = Item(item_id, pos)
+        self.item_list.append(tmp_item)
+        return tmp_item
 
     # Loads a map given a map file, returns list of tiles loaded
     def load(self, map_path):
@@ -125,6 +139,8 @@ class GameMap(object):
         self.anim_state = (self.anim_state + 1) % 4
         for tile in self.animated_tiles:
             tile.anim(self.anim_state)
+        for item in self.item_list:
+            item.anim()
 
     def do_fov(self, x, y, radius, row, start_slope, end_slope, xx, xy, yx, yy):
         if start_slope < end_slope: return
