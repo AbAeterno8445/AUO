@@ -1,5 +1,6 @@
 # AUO
-Python AUO game project.
+Python AUO game project, based on eggmceye's EUOtopia (http://euotopia.com/).
+All assets have been taken from the previously mentioned game; I do not claim ownership to any of them.
 
 # Extra info
 Currently used tile flags:
